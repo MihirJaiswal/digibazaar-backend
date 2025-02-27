@@ -7,20 +7,21 @@ import {
   updateCommunity, 
   deleteCommunity 
 } from '../controllers/communityController.js';
+import { verifyToken } from '../middleware/jwt.js';
 
 const router = express.Router();
 
 // Create a new community
-router.post('/', createCommunity);
+router.post('/', verifyToken, createCommunity);
 
 // Get all communities (with related creator, members, and posts)
-router.get('/', getAllCommunities);
+router.get('/', verifyToken, getAllCommunities);
 
 // Get a single community by ID
-router.get('/:id', getCommunityById);
+router.get('/:id', verifyToken, getCommunityById);
 
 // Update an existing community by ID (only allowed by the creator)
-router.put('/:id', updateCommunity);
+router.put('/:id', verifyToken, updateCommunity);
 
 // Delete a community by ID (only allowed by the creator)
 router.delete('/:id', deleteCommunity);

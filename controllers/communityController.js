@@ -10,7 +10,7 @@ export const createCommunity = async (req, res, next) => {
   if (!name) {
     return next(createError(400, 'Community name is required'));
   }
-  if (!req.userId) {
+  if (!req.userId) {    
     return next(createError(401, 'Authentication required'));
   }
   try {

@@ -1,4 +1,3 @@
-// server.js
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -6,11 +5,12 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
+import { verifyToken } from './middleware/jwt.js';
 
 const app = express();
 const prisma = new PrismaClient();
 
-// Middleware
+// CORS and Body Parsers
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,
@@ -21,9 +21,19 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-// Health check route
+// Logging Middleware for all incoming requests
+app.use((req, res, next) => {
+  console.log("🔹 Received Request:");
+  console.log("➡️ Method:", req.method);
+  console.log("➡️ Path:", req.path);
+  console.log("➡️ Headers:", req.headers);
+  console.log("➡️ Body:", req.body);
+  next();
+});
+
+// Health Check Route
 app.get('/api/health', (req, res) => {
-  res.status(200).send({ message: 'Server is healthy' });
+  res.status(200).json({ message: 'Server is healthy' });
 });
 
 // Import API Routes
@@ -59,43 +69,47 @@ import transactionRoutes from './routes/transactionRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 
 // Mount API Routes
+// If a route requires authentication, attach the verifyToken middleware before the route handler.
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/community-comments', communityCommentRoutes);
-app.use('/api/community-members', communityMemberRoutes);
-app.use('/api/community-posts', communityPostRoutes);
-app.use('/api/communities', communityRoutes);
-app.use('/api/conversations', conversationRoutes);
-app.use('/api/follows', followRoutes);
-app.use('/api/forum-comments', forumCommentRoutes);
-app.use('/api/forum-posts', forumPostRoutes);
-app.use('/api/gig-bookmarks', gigBookmarkRoutes);
-app.use('/api/gig-comments', gigCommentRoutes);
-app.use('/api/gig-likes', gigLikeRoutes);
-app.use('/api/gig-orders', gigOrderRoutes);
-app.use('/api/gig-reviews', gigReviewRoutes);
-app.use('/api/gigs', gigRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/product-bookmarks', productBookmarkRoutes);
-app.use('/api/product-comments', productCommentRoutes);
-app.use('/api/product-likes', productLikeRoutes);
-app.use('/api/product-orders', productOrderRoutes);
-app.use('/api/product-reviews', productReviewRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/project-members', projectMemberRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/subcategories', subCategoryRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/transactions', transactionRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api/community-comments', verifyToken, communityCommentRoutes);
+app.use('/api/community-members', verifyToken, communityMemberRoutes);
+app.use('/api/community-posts', verifyToken, communityPostRoutes);
+app.use('/api/communities', verifyToken, communityRoutes);
+app.use('/api/conversations', verifyToken, conversationRoutes);
+app.use('/api/follows', verifyToken, followRoutes);
+app.use('/api/forum-comments', verifyToken, forumCommentRoutes);
+app.use('/api/forum-posts', verifyToken, forumPostRoutes);
+app.use('/api/gig-bookmarks', verifyToken, gigBookmarkRoutes);
+app.use('/api/gig-comments', verifyToken, gigCommentRoutes);
+app.use('/api/gig-likes', verifyToken, gigLikeRoutes);
+app.use('/api/gig-orders', verifyToken, gigOrderRoutes);
+app.use('/api/gig-reviews', verifyToken, gigReviewRoutes);
+app.use('/api/gigs', verifyToken, gigRoutes);
+app.use('/api/messages', verifyToken, messageRoutes);
+app.use('/api/notifications', verifyToken, notificationRoutes);
+app.use('/api/product-bookmarks', verifyToken, productBookmarkRoutes);
+app.use('/api/product-comments', verifyToken, productCommentRoutes);
+app.use('/api/product-likes', verifyToken, productLikeRoutes);
+app.use('/api/product-orders', verifyToken, productOrderRoutes);
+app.use('/api/product-reviews', verifyToken, productReviewRoutes);
+app.use('/api/products', verifyToken, productRoutes);
+app.use('/api/project-members', verifyToken, projectMemberRoutes);
+app.use('/api/projects', verifyToken, projectRoutes);
+app.use('/api/subcategories', verifyToken, subCategoryRoutes);
+app.use('/api/tasks', verifyToken, taskRoutes);
+app.use('/api/transactions', verifyToken, transactionRoutes);
+app.use('/api/users', verifyToken, userRoutes);
 
+// Global Error Handler Middleware
 app.use((err, req, res, next) => {
+  console.error("❌ Error:", err);
   const errorStatus = err.status || 500;
   const errorMessage = err.message || 'Something went wrong!';
-  return res.status(errorStatus).json({ error: errorMessage });
+  res.status(errorStatus).json({ error: errorMessage });
 });
 
+// Start the Server
 const PORT = process.env.PORT || 8800;
 app.listen(PORT, async () => {
   console.log(`Backend server is running on port ${PORT}!`);
