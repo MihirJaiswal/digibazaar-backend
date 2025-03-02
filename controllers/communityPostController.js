@@ -242,3 +242,55 @@ export const getLikesForPost = async (req, res, next) => {
     next(createError(500, "Failed to retrieve likes for community post", { details: error.message }));
   }
 };
+
+//get very post 
+export const getAllPosts = async (req, res, next) => {
+  try {
+    console.log("Fetching all posts...");
+    
+    const posts = await prisma.communityPost.findMany(); // Fetches all data
+
+    console.log("Fetched posts:", posts);
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error("Error fetching all posts:", error);
+    next(createError(500, "Failed to get all posts", { details: error.message }));
+  }
+};
+
+
+
+//get all posts by user
+export const getAllPostsByUser = async (req, res, next) => {
+  const { userId } = req.params;
+  const cleanedUserId = decodeURIComponent(userId).trim();
+
+  if (!cleanedUserId) {
+    return next(createError(400, 'User ID is required'));
+  }
+
+  try {
+    console.log('Fetching posts for User ID:', cleanedUserId);
+    
+    const posts = await prisma.communityPost.findMany({
+      where: { userId: cleanedUserId },
+      include: {
+        user: true,
+        comments: { include: { user: true } },
+        postLikes: true,
+        community: true,
+      },
+    }); 
+
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    next(createError(500, 'Failed to get all posts by user', { details: error.message }));
+  }
+};
+
+
+
+
+
+

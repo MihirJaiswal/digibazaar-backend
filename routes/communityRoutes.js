@@ -5,7 +5,9 @@ import {
   getCommunityById, 
   getAllCommunities, 
   updateCommunity, 
-  deleteCommunity 
+  deleteCommunity,
+  getAllCommunitiesByUser,
+  getAllCommunitiesJoinedByUser
 } from '../controllers/communityController.js';
 import { verifyToken } from '../middleware/jwt.js';
 
@@ -25,5 +27,12 @@ router.put('/:id', verifyToken, updateCommunity);
 
 // Delete a community by ID (only allowed by the creator)
 router.delete('/:id', deleteCommunity);
+
+// Get all communities by user
+router.get('/user/:userId', getAllCommunitiesByUser);
+
+// Get all communities joined by user
+router.get('/user/:userId/joined', getAllCommunitiesJoinedByUser);
+
 
 export default router;

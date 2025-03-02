@@ -414,11 +414,15 @@ model Community {
   id          String   @id @default(uuid())
   name        String   @unique
   description String?
-  image       String?
+  image       String?   @db.Text
   creatorId   String
   isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  rules       Json?
+  tags        Json?
+  coverImage  String?   @db.Text
+  allowNSFW    Boolean  @default(false)
 
   // Relations
   creator User              @relation("CreatorCommunities", fields: [creatorId], references: [id], onDelete: Cascade)

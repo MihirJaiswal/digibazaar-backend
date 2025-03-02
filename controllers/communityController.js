@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 // Create a new community
 export const createCommunity = async (req, res, next) => {
-  const { name, description, image, isPublic } = req.body;
+  const { name, description, image, isPublic, rules, tags, coverImage, allowNSFW } = req.body;
   if (!name) {
     return next(createError(400, 'Community name is required'));
   }
@@ -21,11 +21,15 @@ export const createCommunity = async (req, res, next) => {
         image,
         isPublic: isPublic !== undefined ? isPublic : true,
         creator: { connect: { id: req.userId } },
+        rules,
+        tags,
+        coverImage,
+        allowNSFW
       },
     });
     res.status(201).json(community);
   } catch (error) {
-    console
+    console.log(error);
     next(createError(500, 'Failed to create community', { details: error.message }));
   }
 };
@@ -107,3 +111,52 @@ export const deleteCommunity = async (req, res, next) => {
     next(createError(500, 'Failed to delete community', { details: error.message }));
   }
 };
+
+//get all communities by user
+export const getAllCommunitiesByUser = async (req, res, next) => {
+  const { userId } = req.params;
+  try {
+    const communities = await prisma.community.findMany({
+      where: { creatorId: userId },
+      include: {
+        creator: true,
+        members: true,
+        posts: true,
+      },
+    });
+    res.status(200).json(communities);
+  } catch (error) {
+    next(createError(500, 'Failed to get all communities by user', { details: error.message }));
+  }
+};
+
+
+//get all communities joined by user
+export const getAllCommunitiesJoinedByUser = async (req, res, next) => {
+  const { userId } = req.params; // userId comes as a string from req.params
+
+  try {
+    const communities = await prisma.community.findMany({
+      where: {
+        members: {
+          some: {
+            userId: userId, // ✅ Correct way to filter user's joined communities
+          },
+        },
+      },
+      include: {
+        creator: true,
+        members: true,
+        posts: true,
+      },
+    });
+
+    console.log(communities); // Debugging output
+    res.status(200).json(communities);
+  } catch (error) {
+    next(createError(500, "Failed to get all communities joined by user", { details: error.message }));
+  }
+};
+
+
+

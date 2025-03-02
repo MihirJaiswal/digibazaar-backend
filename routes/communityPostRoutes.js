@@ -9,7 +9,8 @@ import {
   likeCommunityPost,
   unlikeCommunityPost,
   getLikesForPost,
-  
+  getAllPosts,
+  getAllPostsByUser,
 } from '../controllers/communityPostController.js';
 
 const router = express.Router();
@@ -39,5 +40,11 @@ router.post('/:id/unlike', unlikeCommunityPost);
 
 // Get likes for a community post
 router.get('/:id/likes', getLikesForPost);
+
+// Get all posts
+router.get('/', getAllPosts);
+
+// Get all posts by user
+router.get('/user/:userId', getAllPostsByUser);
 
 export default router;

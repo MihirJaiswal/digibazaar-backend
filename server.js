@@ -100,7 +100,7 @@ app.use('/api/projects', verifyToken, projectRoutes);
 app.use('/api/subcategories', verifyToken, subCategoryRoutes);
 app.use('/api/tasks', verifyToken, taskRoutes);
 app.use('/api/transactions', verifyToken, transactionRoutes);
-app.use('/api/users', verifyToken, userRoutes);
+app.use('/api/users', userRoutes);
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
