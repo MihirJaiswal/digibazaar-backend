@@ -27,6 +27,7 @@ app.use((req, res, next) => {
   console.log("➡️ Method:", req.method);
   console.log("➡️ Path:", req.path);
   console.log("➡️ Headers:", req.headers);
+  console.log("➡️ Cookies:", req.cookies);
   console.log("➡️ Body:", req.body);
   next();
 });
@@ -72,10 +73,10 @@ import userRoutes from './routes/userRoutes.js';
 // If a route requires authentication, attach the verifyToken middleware before the route handler.
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/community-comments', verifyToken, communityCommentRoutes);
-app.use('/api/community-members', verifyToken, communityMemberRoutes);
-app.use('/api/community-posts', verifyToken, communityPostRoutes);
-app.use('/api/communities', verifyToken, communityRoutes);
+app.use('/api/community-comments', communityCommentRoutes);
+app.use('/api/community-members',  communityMemberRoutes);
+app.use('/api/community-posts', communityPostRoutes);
+app.use('/api/communities', communityRoutes);
 app.use('/api/conversations', verifyToken, conversationRoutes);
 app.use('/api/follows', verifyToken, followRoutes);
 app.use('/api/forum-comments', verifyToken, forumCommentRoutes);

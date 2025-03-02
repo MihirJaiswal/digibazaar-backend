@@ -27,6 +27,7 @@ model User {
   socialLinks   Json?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  isSeller      Boolean  @default(false)
 
   // Marketplace & Project Relations
   gigs                  Gig[]
@@ -445,6 +446,10 @@ model CommunityPost {
   userId      String
   title       String
   content     String
+  image       String? 
+  video       String?
+  audio       String?
+  link        String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -452,17 +457,43 @@ model CommunityPost {
   community Community          @relation(fields: [communityId], references: [id], onDelete: Cascade)
   user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   comments  CommunityComment[]
+  postLikes PostLike[]
+}
+
+model PostLike {
+  id              String         @id @default(uuid())
+  postId          String
+  userId          String
+  createdAt       DateTime       @default(now())
+  CommunityPost   CommunityPost? @relation(fields: [communityPostId], references: [id])
+  communityPostId String?
 }
 
 model CommunityComment {
-  id        String   @id @default(uuid())
+  id        String        @id @default(uuid())
   postId    String
   userId    String
   content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  
   // Relations
-  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes     Vote[]
+
+  // ✅ Self-referencing relationship for replies
+  parentId   String?  // Nullable field: If null, it's a main comment; if set, it's a reply
+  parent     CommunityComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies    CommunityComment[] @relation("CommentReplies")
+}
+
+
+model Vote {
+  id        String @id @default(uuid())
+  commentId String
+  userId    String
+
+  CommunityComment   CommunityComment? @relation(fields: [communityCommentId], references: [id])
+  communityCommentId String?
 }

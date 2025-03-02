@@ -15,10 +15,10 @@ const router = express.Router();
 router.post('/', verifyToken, createCommunity);
 
 // Get all communities (with related creator, members, and posts)
-router.get('/', verifyToken, getAllCommunities);
+router.get('/', getAllCommunities);
 
 // Get a single community by ID
-router.get('/:id', verifyToken, getCommunityById);
+router.get('/:id', getCommunityById);
 
 // Update an existing community by ID (only allowed by the creator)
 router.put('/:id', verifyToken, updateCommunity);

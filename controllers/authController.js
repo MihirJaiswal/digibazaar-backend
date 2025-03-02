@@ -9,7 +9,6 @@ const prisma = new PrismaClient();
 export const register = async (req, res, next) => {
   try {
     const hash = bcrypt.hashSync(req.body.password, 5);
-
     const newUser = await prisma.user.create({
       data: {
         ...req.body,
@@ -17,8 +16,39 @@ export const register = async (req, res, next) => {
       },
     });
 
-    res.status(201).send('User has been created.');
+    // Generate token similar to login
+    const token = jwt.sign(
+      {
+        id: newUser.id,
+        isSeller: newUser.isSeller,
+      },
+      process.env.JWT_KEY,
+      { expiresIn: "7d" }
+    );
+
+    const { password, ...info } = newUser;
+
+    res
+      .cookie("accessToken", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      })
+      .status(201)
+      .json({
+        token,
+        user: info,
+      });
   } catch (err) {
+    if (err.code === 'P2002') {
+      return next(createError(400, "Username already exists!"));
+    }
+    else if (err.code === 'P2003') {
+      return next(createError(400, "Email already exists!"));
+    }
+    else if (err.code === 'P2004') {
+      return next(createError(400, "Phone number already exists!"));
+    }
     next(err);
   }
 };

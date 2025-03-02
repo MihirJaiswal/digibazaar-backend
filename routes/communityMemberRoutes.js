@@ -5,12 +5,16 @@ import {
   getCommunityMembers,
   updateCommunityMemberRole,
   removeCommunityMember,
+  leaveCommunity,
 } from '../controllers/communityMemberController.js';
 
 const router = express.Router();
 
 // Endpoint for a user to join a community
 router.post('/join', joinCommunity);
+
+// Endpoint for a user to leave a community
+router.post('/leave', leaveCommunity);
 
 // Endpoint to get all members of a specific community
 // The communityId is passed as a URL parameter

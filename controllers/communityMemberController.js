@@ -9,10 +9,18 @@ const prisma = new PrismaClient();
  * A user can join a community if they are not already a member.
  */
 export const joinCommunity = async (req, res, next) => {
-  const { communityId } = req.body;
-  if (!communityId) {
-    return next(createError(400, 'Missing required field: communityId'));
+  console.log("🔍 Debug: Incoming Join Request");
+  
+  // Get user ID from request body rather than middleware
+  const { communityId, userId } = req.body;
+  
+  console.log("➡️ User ID:", userId);
+  console.log("➡️ Community ID:", communityId);
+  
+  if (!communityId || !userId) {
+    return next(createError(400, 'Missing required fields: communityId or userId'));
   }
+  
   try {
     // Check if the community exists
     const community = await prisma.community.findUnique({
@@ -25,7 +33,7 @@ export const joinCommunity = async (req, res, next) => {
     // Check if the user is already a member
     const existingMembership = await prisma.communityMember.findUnique({
       where: {
-        communityId_userId: { communityId, userId: req.userId },
+        communityId_userId: { communityId, userId },
       },
     });
     if (existingMembership) {
@@ -36,7 +44,7 @@ export const joinCommunity = async (req, res, next) => {
     const newMembership = await prisma.communityMember.create({
       data: {
         communityId,
-        userId: req.userId,
+        userId,
         role: 'member',
       },
     });
@@ -45,6 +53,54 @@ export const joinCommunity = async (req, res, next) => {
     next(createError(500, 'Failed to join community', { details: error.message }));
   }
 };
+
+
+// Leave a community: allow the current user to leave their community membership
+export const leaveCommunity = async (req, res, next) => {
+  console.log("🔍 Debug: Incoming Leave Request");
+
+  // Extract userId and communityId from request body
+  const { communityId, userId } = req.body;
+
+  console.log("➡️ User ID:", userId);
+  console.log("➡️ Community ID:", communityId);
+
+  if (!communityId || !userId) {
+    return next(createError(400, 'Missing required fields: communityId or userId'));
+  }
+
+  try {
+    // Check if the community exists
+    const community = await prisma.community.findUnique({
+      where: { id: communityId },
+    });
+    if (!community) {
+      return next(createError(404, 'Community not found'));
+    }
+
+    // Check if the user is actually a member
+    const existingMembership = await prisma.communityMember.findUnique({
+      where: {
+        communityId_userId: { communityId, userId },
+      },
+    });
+
+    if (!existingMembership) {
+      return next(createError(400, 'You are not a member of this community'));
+    }
+
+    // Delete the membership record
+    await prisma.communityMember.delete({
+      where: { communityId_userId: { communityId, userId } },
+    });
+
+    res.status(200).json({ message: 'Successfully left the community' });
+  } catch (error) {
+    next(createError(500, 'Failed to leave community', { details: error.message }));
+  }
+};
+
+
 
 /**
  * Get all members of a specific community.
