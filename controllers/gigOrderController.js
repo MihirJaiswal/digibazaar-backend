@@ -1,46 +1,121 @@
-// gigOrder.controller.js
 import { PrismaClient } from '@prisma/client';
 import createError from '../utils/createError.js';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import Stripe from 'stripe';
 
+dotenv.config();
 const prisma = new PrismaClient();
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Create a new Gig Order
-export const createGigOrder = async (req, res, next) => {
-  const { gigId, price, paymentIntent } = req.body;
+const verifyToken = (req) => {
+  let token = req.headers.authorization?.split(" ")[1];
 
-  if (!gigId || !price) {
-    return next(createError(400, "Missing required fields: gigId and price"));
+  if (!token && req.cookies?.__session) {
+    token = req.cookies.__session;
   }
 
-  try {
-    // Retrieve the gig to get the seller's ID
-    const gig = await prisma.gig.findUnique({
-      where: { id: gigId },
-    });
+  if (!token) throw createError(401, "Access denied. No token provided.");
 
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_KEY);
+    return decoded.id;
+  } catch (error) {
+    throw createError(403, "Invalid token");
+  }
+};
+
+// ✅ 1️⃣ Create a Payment Intent (Frontend Calls This)
+export const createPaymentIntent = async (req, res, next) => {
+  try {
+    const buyerId = verifyToken(req);
+    const { gigId } = req.body;
+
+    const gig = await prisma.gig.findUnique({ where: { id: gigId } });
     if (!gig) return next(createError(404, "Gig not found"));
 
-    const newGigOrder = await prisma.gigOrder.create({
-      data: {
-        gigId,
-        buyerId: req.userId,    // Authenticated user as buyer
-        sellerId: gig.userId,     // Seller is the owner of the gig
-        price: parseInt(price),
-        paymentIntent,
+    // ✅ Create a customer with a valid Indian address
+    const customer = await stripe.customers.create({
+      name: req.user?.name || "Test User",
+      email: req.user?.email || "test@example.com",
+      address: {
+        line1: "123 Street",
+        city: "Mumbai",
+        state: "MH",
+        postal_code: "400001",
+        country: "IN",
       },
     });
 
-    res.status(201).json(newGigOrder);
+    // ✅ Change currency to INR & pass required fields
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: gig.price * 100,  // Convert to paisa (₹1 = 100 paisa)
+      currency: "inr",
+      customer: customer.id,
+      description: `Payment for gig: ${gig.title}`,
+      payment_method_types: ["card"],
+    });
+
+    res.status(200).json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
   } catch (error) {
+    console.error("❌ Error in createPaymentIntent:", error);
     next(error);
   }
 };
 
+
+// ✅ 2️⃣ Confirm Payment & Create Order (Frontend Calls This After Payment)
+export const createGigOrder = async (req, res, next) => {
+  try {
+    const buyerId = verifyToken(req); // ✅ Extracts buyerId from token
+    const { gigId, paymentIntentId, requirement } = req.body;
+
+    if (!gigId || !paymentIntentId || !requirement) {
+      console.error("❌ Missing required fields:", req.body);
+      return next(createError(400, "Missing required fields"));
+    }
+
+    // ✅ Fetch gig details to get sellerId & price
+    const gig = await prisma.gig.findUnique({ where: { id: gigId } });
+    if (!gig) return next(createError(404, "Gig not found"));
+
+    // ✅ Ensure payment was successful
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    if (paymentIntent.status !== "succeeded") {
+      return next(createError(400, "Payment not completed"));
+    }
+
+    // ✅ Create order in database
+    const newGigOrder = await prisma.gigOrder.create({
+      data: {
+        gigId,
+        buyerId,
+        sellerId: gig.userId,  // Get seller from gig details
+        price: gig.price,       // Get price from gig details
+        paymentIntent: paymentIntentId,
+        requirement,
+        status: "IN_PROGRESS",
+      },
+    });
+
+    console.log("✅ Gig Order Created:", newGigOrder);
+    res.status(201).json(newGigOrder);
+  } catch (error) {
+    console.error("❌ Error in createGigOrder:", error);
+    next(error);
+  }
+};
+
+
+
+
+
 // Get a specific Gig Order by ID
 export const getGigOrder = async (req, res, next) => {
-  const { id } = req.params;
-
   try {
+    verifyToken(req);
+    const { id } = req.params;
+
     const order = await prisma.gigOrder.findUnique({
       where: { id },
       include: {
@@ -50,53 +125,44 @@ export const getGigOrder = async (req, res, next) => {
       },
     });
 
-    if (!order) return next(createError(404, "Gig order not found"));
+    if (!order) return next(createError(404, 'Gig order not found'));
     res.status(200).json(order);
   } catch (error) {
+    console.error('Error in getGigOrder:', error);
     next(error);
   }
 };
 
-// Update Gig Order status (for example, only seller can update status)
+// Update Gig Order status (only seller can update)
 export const updateGigOrderStatus = async (req, res, next) => {
-  const { id } = req.params;
-  const { status } = req.body; // expected to be one of the OrderStatus enum values
-
   try {
-    const order = await prisma.gigOrder.findUnique({
-      where: { id },
-    });
+    const userId = verifyToken(req);
+    const { id } = req.params;
+    const { status } = req.body;
 
-    if (!order) return next(createError(404, "Gig order not found"));
+    const order = await prisma.gigOrder.findUnique({ where: { id } });
+    if (!order) return next(createError(404, 'Gig order not found'));
 
-    // Ensure only the seller can update the order status
-    if (order.sellerId !== req.userId) {
-      return next(createError(403, "Only the seller can update the order status"));
+    if (order.sellerId !== userId) {
+      return next(createError(403, 'Only the seller can update the order status'));
     }
 
-    const updatedOrder = await prisma.gigOrder.update({
-      where: { id },
-      data: { status },
-    });
-
+    const updatedOrder = await prisma.gigOrder.update({ where: { id }, data: { status } });
     res.status(200).json(updatedOrder);
   } catch (error) {
+    console.error('Error in updateGigOrderStatus:', error);
     next(error);
   }
 };
 
-//get all orders for a user
+// Get all orders for a user
 export const getOrdersForUser = async (req, res, next) => {
-  const { userId } = req.params;
   try {
+    const userId = verifyToken(req);
     const orders = await prisma.gigOrder.findMany({
       where: {
-        OR: [
-          { buyerId: userId },
-          { sellerId: userId },
-        ],
+        OR: [{ buyerId: userId }, { sellerId: userId }],
       },
-
       include: {
         gig: true,
         buyer: true,
@@ -105,7 +171,7 @@ export const getOrdersForUser = async (req, res, next) => {
     });
     res.status(200).json(orders);
   } catch (error) {
+    console.error('Error in getOrdersForUser:', error);
     next(error);
   }
 };
-

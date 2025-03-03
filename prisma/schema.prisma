@@ -135,6 +135,8 @@ model GigOrder {
   sellerId      String
   price         Int
   status        OrderStatus @default(PENDING)
+  //for adding specific requirement
+  requirement   String
   paymentIntent String
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
