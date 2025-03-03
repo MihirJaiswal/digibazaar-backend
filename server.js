@@ -13,11 +13,13 @@ const prisma = new PrismaClient();
 // CORS and Body Parsers
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
+app.options('*', cors());
 app.use(express.json());
 app.use(cookieParser());
 
@@ -70,7 +72,7 @@ app.use('/api/conversations', verifyToken, conversationRoutes);
 app.use('/api/follows', verifyToken, followRoutes);
 app.use('/api/gig-bookmarks', verifyToken, gigBookmarkRoutes);
 app.use('/api/gig-toggles-likes', gigLikeRoutes);
-app.use('/api/gig-orders', verifyToken, gigOrderRoutes);
+app.use('/api/gig-orders', gigOrderRoutes);
 app.use('/api/gig-reviews',  gigReviewRoutes);
 app.use('/api/gig-stars',  gigStarsRoutes);
 app.use('/api/gigs', gigRoutes);

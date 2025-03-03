@@ -133,21 +133,30 @@ export const getGigOrder = async (req, res, next) => {
   }
 };
 
-// Update Gig Order status (only seller can update)
+// Update the controller function
 export const updateGigOrderStatus = async (req, res, next) => {
   try {
-    const userId = verifyToken(req);
-    const { id } = req.params;
-    const { status } = req.body;
+    const userId = req.userId; // Get userId from the request (set by verifyToken middleware)
+    const { id } = req.params; // Order ID
+    const { status } = req.body; // New status
 
+    // Find the order by its ID
     const order = await prisma.gigOrder.findUnique({ where: { id } });
-    if (!order) return next(createError(404, 'Gig order not found'));
-
-    if (order.sellerId !== userId) {
-      return next(createError(403, 'Only the seller can update the order status'));
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
     }
 
-    const updatedOrder = await prisma.gigOrder.update({ where: { id }, data: { status } });
+    // Check if the logged-in user is the seller for this order
+    if (order.sellerId !== userId) {
+      return res.status(403).json({ error: 'Only the seller can update the order status' });
+    }
+
+    // Update the order status
+    const updatedOrder = await prisma.gigOrder.update({
+      where: { id },
+      data: { status },
+    });
+
     res.status(200).json(updatedOrder);
   } catch (error) {
     console.error('Error in updateGigOrderStatus:', error);
@@ -155,10 +164,11 @@ export const updateGigOrderStatus = async (req, res, next) => {
   }
 };
 
+
 // Get all orders for a user
 export const getOrdersForUser = async (req, res, next) => {
   try {
-    const userId = verifyToken(req);
+    const { userId } = req.params; // Assuming userId is passed as a parameter
     const orders = await prisma.gigOrder.findMany({
       where: {
         OR: [{ buyerId: userId }, { sellerId: userId }],
@@ -175,3 +185,27 @@ export const getOrdersForUser = async (req, res, next) => {
     next(error);
   }
 };
+
+
+//get all orders for a seller
+export const getOrdersForSeller = async (req, res, next) => {
+  try {
+    const { sellerId } = req.params; // Assuming sellerId is passed as a parameter
+    const orders = await prisma.gigOrder.findMany({
+      where: { sellerId },
+      include: {
+        gig: true,
+        buyer: true,
+      },
+    });
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error('Error in getOrdersForSeller:', error);
+    next(error);
+  }
+};
+
+
+
+
+// Update Gig Order status (only seller can update)/*  */

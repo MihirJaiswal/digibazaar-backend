@@ -1,6 +1,6 @@
 // routes/gigOrderRoutes.js
 import express from 'express';
-import { createGigOrder, getGigOrder, updateGigOrderStatus, getOrdersForUser, createPaymentIntent } from '../controllers/gigOrderController.js';
+import { createGigOrder, getGigOrder, updateGigOrderStatus, getOrdersForUser, createPaymentIntent, getOrdersForSeller } from '../controllers/gigOrderController.js';
 
 const router = express.Router();
 
@@ -18,6 +18,9 @@ router.get('/user/:userId', getOrdersForUser);
 
 //get create payment intent
 router.post('/create-payment-intent', createPaymentIntent);
+
+//get all orders for a seller
+router.get('/seller/:sellerId', getOrdersForSeller);
 
 
 export default router;
