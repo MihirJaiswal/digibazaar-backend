@@ -1,6 +1,6 @@
 // routes/gigReviewRoutes.js
 import express from 'express';
-import { createGigReview, updateGigReview, deleteGigReview } from '../controllers/gigReviewController.js';
+import { createGigReview, updateGigReview, deleteGigReview, getGigReviews } from '../controllers/gigReviewController.js';
 
 const router = express.Router();
 
@@ -12,5 +12,8 @@ router.put('/:id', updateGigReview);
 
 // Delete a gig review by its ID
 router.delete('/:id', deleteGigReview);
+
+// Get all reviews for a gig
+router.get('/:gigId', getGigReviews);
 
 export default router;

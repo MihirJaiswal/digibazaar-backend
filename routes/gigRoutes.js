@@ -1,6 +1,6 @@
 // routes/gigRoutes.js
 import express from 'express';
-import { createGig, deleteGig, getGig, getGigs } from '../controllers/gigController.js';
+import { createGig, deleteGig, getGig, getGigs, updateGig } from '../controllers/gigController.js';
 
 const router = express.Router();
 
@@ -15,5 +15,8 @@ router.get('/:id', getGig);
 
 // Delete a gig by its ID (only allowed if the gig belongs to the authenticated user)
 router.delete('/:id', deleteGig);
+
+// Update a gig by its ID (only allowed if the gig belongs to the authenticated user)
+router.put('/:id', updateGig);  
 
 export default router;

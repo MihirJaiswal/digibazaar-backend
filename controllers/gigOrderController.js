@@ -84,3 +84,28 @@ export const updateGigOrderStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+//get all orders for a user
+export const getOrdersForUser = async (req, res, next) => {
+  const { userId } = req.params;
+  try {
+    const orders = await prisma.gigOrder.findMany({
+      where: {
+        OR: [
+          { buyerId: userId },
+          { sellerId: userId },
+        ],
+      },
+
+      include: {
+        gig: true,
+        buyer: true,
+        seller: true,
+      },
+    });
+    res.status(200).json(orders);
+  } catch (error) {
+    next(error);
+  }
+};
+

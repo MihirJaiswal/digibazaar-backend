@@ -11,12 +11,46 @@ enum OrderStatus {
   PENDING
   COMPLETED
   CANCELLED
+  IN_PROGRESS
+  DELIVERED
+  REFUNDED
+  REJECTED
 }
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum CategoryEnum {
+  WEB_DEVELOPMENT
+  GRAPHIC_DESIGN
+  DIGITAL_MARKETING
+  CONTENT_WRITING
+  VIDEO_ANIMATION
+  SOFTWARE_DEVELOPMENT
+  MOBILE_DEVELOPMENT
+  DATA_ANALYTICS
+  BUSINESS
+  AUDIO_PRODUCTION
+  PHOTOGRAPHY
+  VIRTUAL_ASSISTANTS
+}
+
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  PAYMENT
+  REFUND
+}
+
 
 model User {
   id            String   @id @default(uuid())
-  username      String   @unique
   email         String   @unique
+  username      String   @unique
   password      String
   profilePic    String?
   bio           String?
@@ -31,28 +65,19 @@ model User {
 
   // Marketplace & Project Relations
   gigs                  Gig[]
-  products              Product[]
-  gigOrders             GigOrder[]        @relation("GigBuyerOrders")
-  productOrders         ProductOrder[]    @relation("ProductBuyerOrders")
+  gigOrders             GigOrder[]     @relation("GigBuyerOrders")
   messages              Message[]
   gigReviews            GigReview[]
-  productReviews        ProductReview[]
+  gigStars              GigStar[]
   gigLikes              GigLike[]
-  productLikes          ProductLike[]
-  gigComments           GigComment[]
-  productComments       ProductComment[]
-  gigBookmarks          GigBookmark[]
-  productBookmarks      ProductBookmark[]
-  conversationsAsSeller Conversation[]    @relation("SellerConversations")
-  conversationsAsBuyer  Conversation[]    @relation("BuyerConversations")
-  projects              Project[]
-  forumPosts            ForumPost[]
-  forumComments         ForumComment[]
-  projectMemberships    ProjectMember[]
+  conversationsAsSeller Conversation[] @relation("SellerConversations")
+  conversationsAsBuyer  Conversation[] @relation("BuyerConversations")
   transactions          Transaction[]
-  followers             Follow[]          @relation("Followers")
-  following             Follow[]          @relation("Following")
+  followers             Follow[]       @relation("Followers")
+  following             Follow[]       @relation("Following")
   notifications         Notification[]
+  orderUpdates         GigOrderUpdate[]
+  refunds              Refund[]
 
   // Community Relations
   communitiesCreated   Community[]        @relation("CreatorCommunities")
@@ -60,64 +85,47 @@ model User {
   communityPosts       CommunityPost[]
   communityComments    CommunityComment[]
   GigOrder             GigOrder[]
+  Store                Store?
   ProductOrder         ProductOrder[]
-  Task                 Task[]
 }
 
 model Gig {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   userId         String
-  categoryId     String
+  category       CategoryEnum
   title          String
   desc           String
-  totalStars     Int      @default(0)
-  starNumber     Int      @default(0)
   price          Int
   cover          String
   images         Json
-  shortTitle     String
   shortDesc      String
   deliveryTime   Int
   revisionNumber Int
+  resume         String?
+  yearsOfExp     Int
   features       Json
-  sales          Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  sales          Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   // Relations
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category  Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   orders    GigOrder[]
   reviews   GigReview[]
   likes     GigLike[]
-  comments  GigComment[]
-  bookmarks GigBookmark[]
+  stars     GigStar[]
 }
 
-model Product {
-  id          String   @id @default(uuid())
-  userId      String?
-  categoryId  String
-  title       String
-  description String
-  price       Int
-  summary     Json
-  images      Json
-  tags        Json
-  licenseType String
-  formats     Json
-  productFile String
-  sales       Int      @default(0)
-  createdAt   DateTime @default(now())
+model GigStar {
+  id        String   @id @default(uuid())
+  gigId     String
+  userId    String
+  star      Int
+  createdAt DateTime @default(now())
 
   // Relations
-  user      User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-  category  Category          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  orders    ProductOrder[]
-  reviews   ProductReview[]
-  likes     ProductLike[]
-  comments  ProductComment[]
-  bookmarks ProductBookmark[]
+  gig  Gig  @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model GigOrder {
@@ -132,27 +140,42 @@ model GigOrder {
   updatedAt     DateTime    @updatedAt
 
   // Relations
-  gig    Gig  @relation(fields: [gigId], references: [id], onDelete: Cascade)
-  buyer  User @relation(fields: [buyerId], references: [id], name: "GigBuyerOrders", onDelete: Cascade)
-  seller User @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  gig           Gig              @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  buyer         User             @relation(fields: [buyerId], references: [id], name: "GigBuyerOrders", onDelete: Cascade)
+  seller        User             @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  updates       GigOrderUpdate[]
+  refunds       Refund[]
 }
 
-model ProductOrder {
-  id            String      @id @default(uuid())
-  productId     String
-  buyerId       String
-  sellerId      String
-  price         Int
-  status        OrderStatus @default(PENDING)
-  paymentIntent String
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+
+model GigOrderUpdate {
+  id        String   @id @default(uuid())
+  gigOrderId String
+  sellerId  String
+  content   String
+  createdAt DateTime @default(now())
 
   // Relations
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  buyer   User    @relation(fields: [buyerId], references: [id], name: "ProductBuyerOrders", onDelete: Cascade)
-  seller  User    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  gigOrder GigOrder @relation(fields: [gigOrderId], references: [id], onDelete: Cascade)
+  seller   User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
 }
+
+
+
+model Refund {
+  id         String   @id @default(uuid())
+  gigOrderId String
+  userId     String
+  amount     Float
+  status     String  // PENDING, PROCESSED, FAILED
+  createdAt  DateTime @default(now())
+
+  // Relations
+  gigOrder GigOrder @relation(fields: [gigOrderId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
 
 model Conversation {
   id           String   @id @default(uuid())
@@ -197,20 +220,6 @@ model GigReview {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model ProductReview {
-  id        String   @id @default(uuid())
-  productId String
-  userId    String
-  star      Int
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
 model GigLike {
   id        String   @id @default(uuid())
   gigId     String
@@ -222,161 +231,12 @@ model GigLike {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model ProductLike {
-  id        String   @id @default(uuid())
-  productId String
-  userId    String
-  createdAt DateTime @default(now())
 
-  // Relations
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model GigComment {
-  id        String   @id @default(uuid())
-  gigId     String
-  userId    String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  gig  Gig  @relation(fields: [gigId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model ProductComment {
-  id        String   @id @default(uuid())
-  productId String
-  userId    String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model GigBookmark {
-  id        String   @id @default(uuid())
-  gigId     String
-  userId    String
-  createdAt DateTime @default(now())
-
-  // Relations
-  gig  Gig  @relation(fields: [gigId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model ProductBookmark {
-  id        String   @id @default(uuid())
-  productId String
-  userId    String
-  createdAt DateTime @default(now())
-
-  // Relations
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Category {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  type      String // e.g., "Gig", "Product", or "Both"
-  createdAt DateTime @default(now())
-
-  // Relations
-  gigs          Gig[]
-  products      Product[]
-  subcategories Subcategory[]
-}
-
-model Subcategory {
-  id         String   @id @default(uuid())
-  name       String
-  categoryId String
-  createdAt  DateTime @default(now())
-
-  // Relations
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-}
-
-model Project {
-  id          String   @id @default(uuid())
-  ownerId     String
-  title       String
-  description String
-  isPublic    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  owner   User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  members ProjectMember[]
-  tasks   Task[]
-}
-
-model ProjectMember {
-  id        String   @id @default(uuid())
-  projectId String
-  userId    String
-  role      String // e.g., "Admin", "Editor", "Viewer"
-  joinedAt  DateTime @default(now())
-
-  // Relations
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Task {
-  id          String    @id @default(uuid())
-  projectId   String
-  assignedTo  String?
-  title       String
-  description String?
-  status      String    @default("Pending") // e.g., "Pending", "In Progress", "Completed"
-  dueDate     DateTime?
-  createdAt   DateTime  @default(now())
-
-  // Relations
-  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignee User?   @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
-}
-
-model ForumPost {
-  id        String   @id @default(uuid())
-  userId    String
-  title     String
-  content   String
-  category  String
-  views     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  comments ForumComment[]
-}
-
-model ForumComment {
-  id        String   @id @default(uuid())
-  postId    String
-  userId    String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  post ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
 
 model Transaction {
   id          String   @id @default(uuid())
   userId      String
-  type        String // e.g., "Deposit", "Withdrawal", "Payment"
+  type        TransactionType// e.g., "Deposit", "Withdrawal", "Payment"
   amount      Float
   description String?
   createdAt   DateTime @default(now())
@@ -414,15 +274,15 @@ model Community {
   id          String   @id @default(uuid())
   name        String   @unique
   description String?
-  image       String?   @db.Text
+  image       String?  @db.Text
   creatorId   String
   isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   rules       Json?
   tags        Json?
-  coverImage  String?   @db.Text
-  allowNSFW    Boolean  @default(false)
+  coverImage  String?  @db.Text
+  allowNSFW   Boolean  @default(false)
 
   // Relations
   creator User              @relation("CreatorCommunities", fields: [creatorId], references: [id], onDelete: Cascade)
@@ -450,7 +310,7 @@ model CommunityPost {
   userId      String
   title       String
   content     String
-  image       String? 
+  image       String?
   video       String?
   audio       String?
   link        String
@@ -465,39 +325,257 @@ model CommunityPost {
 }
 
 model PostLike {
-  id              String         @id @default(uuid())
-  postId          String
-  userId          String
-  createdAt       DateTime       @default(now())
-  CommunityPost   CommunityPost? @relation(fields: [communityPostId], references: [id])
-  communityPostId String?
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  communityPost CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model CommunityComment {
-  id        String        @id @default(uuid())
+  id        String   @id @default(uuid())
   postId    String
   userId    String
   content   String
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  votes     Vote[]
+  post  CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes Vote[]
 
-  // ✅ Self-referencing relationship for replies
-  parentId   String?  // Nullable field: If null, it's a main comment; if set, it's a reply
-  parent     CommunityComment? @relation("CommentReplies", fields: [parentId], references: [id])
-  replies    CommunityComment[] @relation("CommentReplies")
+  // Self-referencing relationship for replies
+  parentId String?
+  parent   CommunityComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  CommunityComment[] @relation("CommentReplies")
 }
-
 
 model Vote {
   id        String @id @default(uuid())
   commentId String
   userId    String
 
-  CommunityComment   CommunityComment? @relation(fields: [communityCommentId], references: [id])
-  communityCommentId String?
+  // Relations
+  comment CommunityComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+}
+
+// Shopify Clone & Warehouse Management Models
+
+model Store {
+  id          String   @id @default(uuid())
+  ownerId     String   @unique
+  name        String
+  description String?
+  theme       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  products        Product[]
+  orders          ProductOrder[]
+  shippingMethods ShippingMethod[]
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  storeId     String
+  title       String
+  description String?
+  price       Float
+  sku         String? // Stock Keeping Unit
+  mainImage   String
+  images      Json? // Additional images as JSON array
+  stock       Int      @default(0) // Fallback stock if no variants are used
+  weight      Float? // For shipping calculations
+  dimensions  Json? // e.g., {"length":10, "width":5, "height":2}
+  tags        Json? // Array of tags/categories
+  categoryId  String? // Optional link to a product category
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  store         Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  variants      ProductVariant[]
+  orderItems    OrderItem[]
+  inventories   Inventory[]
+  PurchaseOrder PurchaseOrder[]
+  reviews       ProductReview[]
+  likes         ProductLike[]
+  comments      ProductComment[]
+}
+
+model ProductReview {
+  id        String  @id @default(uuid())
+  productId String
+  userId    String
+  rating    Int
+  review    String
+  Product   Product @relation(fields: [productId], references: [id])
+}
+
+model ProductLike {
+  id        String  @id @default(uuid())
+  productId String
+  userId    String
+  Product   Product @relation(fields: [productId], references: [id])
+}
+
+model ProductComment {
+  id        String  @id @default(uuid())
+  productId String
+  userId    String
+  comment   String
+  Product   Product @relation(fields: [productId], references: [id])
+}
+
+model ProductVariant {
+  id              String   @id @default(uuid())
+  productId       String
+  name            String? // e.g., "Red, Large"
+  additionalPrice Float    @default(0)
+  stock           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  OrderItem OrderItem[]
+}
+
+model ProductOrder {
+  id               String        @id @default(uuid())
+  storeId          String
+  userId           String // Customer who placed the order
+  totalPrice       Float
+  status           OrderStatus   @default(PENDING)
+  shippingAddress  Json // Detailed shipping info (address, phone, etc.)
+  paymentStatus    PaymentStatus @default(PENDING)
+  paymentIntent    String?
+  trackingNumber   String?
+  shippingMethodId String? // Optional: Selected shipping method
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  // Relations
+  store          Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items          OrderItem[]
+  shipment       Shipment?
+  shippingMethod ShippingMethod? @relation(fields: [shippingMethodId], references: [id])
+}
+
+model OrderItem {
+  id               String   @id @default(uuid())
+  orderId          String
+  productId        String
+  productVariantId String? // Optional: If a variant was selected
+  quantity         Int      @default(1)
+  unitPrice        Float
+  totalPrice       Float // Calculated as unitPrice * quantity
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  order          ProductOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+}
+
+model Warehouse {
+  id          String   @id @default(uuid())
+  name        String
+  location    String // Full address, city, or region
+  capacity    Int // Total capacity (units or weight)
+  contactInfo Json? // e.g., { "phone": "...", "email": "..." }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  inventories   Inventory[]
+  shipments     Shipment[]
+  PurchaseOrder PurchaseOrder[]
+}
+
+model Inventory {
+  id           String    @id @default(uuid())
+  warehouseId  String
+  productId    String
+  quantity     Int       @default(0)
+  reorderLevel Int       @default(0) // Threshold for triggering restock
+  lastReorder  DateTime? // Date when last reorder occurred
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, productId])
+}
+
+model Supplier {
+  id          String   @id @default(uuid())
+  name        String
+  contactInfo Json? // e.g., email, phone, address as JSON
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  purchaseOrders PurchaseOrder[]
+}
+
+model PurchaseOrder {
+  id          String    @id @default(uuid())
+  supplierId  String
+  warehouseId String
+  productId   String
+  quantity    Int
+  status      String // e.g., "Ordered", "Received", "Cancelled"
+  orderedAt   DateTime  @default(now())
+  receivedAt  DateTime? // Date when order was fulfilled
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  supplier  Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ShippingMethod {
+  id                    String   @id @default(uuid())
+  storeId               String
+  name                  String
+  description           String?
+  price                 Float
+  estimatedDeliveryDays Int
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  store     Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orders    ProductOrder[]
+  shipments Shipment[]
+}
+
+model Shipment {
+  id               String    @id @default(uuid())
+  productOrderId   String    @unique
+  warehouseId      String
+  shippingMethodId String?
+  trackingNumber   String?
+  shippedAt        DateTime? // When the shipment left the warehouse
+  deliveredAt      DateTime? // When delivered to customer
+  status           String // e.g., "In Transit", "Delivered", "Delayed"
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  productOrder   ProductOrder    @relation(fields: [productOrderId], references: [id], onDelete: Cascade)
+  warehouse      Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  shippingMethod ShippingMethod? @relation(fields: [shippingMethodId], references: [id])
 }

@@ -1,6 +1,6 @@
 // routes/gigOrderRoutes.js
 import express from 'express';
-import { createGigOrder, getGigOrder, updateGigOrderStatus } from '../controllers/gigOrderController.js';
+import { createGigOrder, getGigOrder, updateGigOrderStatus, getOrdersForUser } from '../controllers/gigOrderController.js';
 
 const router = express.Router();
 
@@ -12,5 +12,8 @@ router.get('/:id', getGigOrder);
 
 // Update gig order status (only allowed by the seller)
 router.patch('/:id', updateGigOrderStatus);
+
+// Get all orders for a user
+router.get('/user/:userId', getOrdersForUser);
 
 export default router;
