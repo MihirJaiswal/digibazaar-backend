@@ -42,25 +42,24 @@ app.get('/api/health', (req, res) => {
 // Import API Routes
 import authRoutes from './routes/authRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
-import communityCommentRoutes from './routes/communityCommentRoutes.js';
-import communityMemberRoutes from './routes/communityMemberRoutes.js';
-import communityPostRoutes from './routes/communityPostRoutes.js';
-import communityRoutes from './routes/communityRoutes.js';
+import communityCommentRoutes from './routes/community/communityCommentRoutes.js';
+import communityMemberRoutes from './routes/community/communityMemberRoutes.js';
+import communityPostRoutes from './routes/community/communityPostRoutes.js';
+import communityRoutes from './routes/community/communityRoutes.js';
 import conversationRoutes from './routes/conversationRoutes.js';
 import followRoutes from './routes/followRoutes.js';
-import gigBookmarkRoutes from './routes/gigBookmarkRoutes.js';
-import gigLikeRoutes from './routes/gigLikeRoutes.js';
-import gigOrderRoutes from './routes/gigOrderRoutes.js';
-import gigReviewRoutes from './routes/gigReviewRoutes.js';
-import gigRoutes from './routes/gigRoutes.js';
-import gigStarsRoutes from './routes/gigStarsRoutes.js';
+import gigBookmarkRoutes from './routes/gig/gigBookmarkRoutes.js';
+import gigLikeRoutes from './routes/gig/gigLikeRoutes.js';
+import gigOrderRoutes from './routes/gig/gigOrderRoutes.js';
+import gigReviewRoutes from './routes/gig/gigReviewRoutes.js';
+import gigRoutes from './routes/gig/gigRoutes.js';
+import gigStarsRoutes from './routes/gig/gigStarsRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
-import subCategoryRoutes from './routes/subCategoryRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-import gigOrderUpdateRoutes from './routes/gigOrderUpdateRoutes.js';
-import gigDeliveryRoutes from './routes/gigDileveryRoutes.js';
+import gigOrderUpdateRoutes from './routes/gig/gigOrderUpdateRoutes.js';
+import gigDeliveryRoutes from './routes/gig/gigDileveryRoutes.js';  
 // Mount API Routes
 // If a route requires authentication, attach the verifyToken middleware before the route handler.
 app.use('/api/auth', authRoutes);
@@ -81,7 +80,6 @@ app.use('/api/gig-order-updates', gigOrderUpdateRoutes);
 app.use('/api/gigs', gigRoutes);
 app.use('/api/messages', verifyToken, messageRoutes);
 app.use('/api/notifications', verifyToken, notificationRoutes);
-app.use('/api/subcategories', verifyToken, subCategoryRoutes);
 app.use('/api/transactions', verifyToken, transactionRoutes);
 app.use('/api/users', userRoutes);
 

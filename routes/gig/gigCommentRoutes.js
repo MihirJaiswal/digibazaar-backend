@@ -1,6 +1,6 @@
 // routes/gigCommentRoutes.js
 import express from 'express';
-import { createGigComment, updateGigComment, deleteGigComment } from '../controllers/gigCommentController.js';
+import { createGigComment, updateGigComment, deleteGigComment } from '../../controllers/gig/gigCommentController.js';
 
 const router = express.Router();
 

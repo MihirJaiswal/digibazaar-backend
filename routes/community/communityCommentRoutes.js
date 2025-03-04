@@ -8,7 +8,7 @@ import {
   unlikeCommunityComment,
   getAllCommentsForPost,
   getAllLikesOnComment
-} from '../controllers/communityCommentController.js';
+} from '../../controllers/community/communityCommentController.js';
 
 const router = express.Router();
 

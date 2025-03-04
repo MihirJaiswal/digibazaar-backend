@@ -8,8 +8,8 @@ import {
   deleteCommunity,
   getAllCommunitiesByUser,
   getAllCommunitiesJoinedByUser
-} from '../controllers/communityController.js';
-import { verifyToken } from '../middleware/jwt.js';
+} from '../../controllers/community/communityController.js';
+import { verifyToken } from '../../middleware/jwt.js';
 
 const router = express.Router();
 

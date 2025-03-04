@@ -1,5 +1,5 @@
 import express from 'express';
-import { uploadGigDelivery, acceptGigDelivery, getGigDeliveryByOrder } from '../controllers/gigDileveryController.js';
+import { uploadGigDelivery, acceptGigDelivery, getGigDeliveryByOrder } from '../../controllers/gig/gigDileveryController.js';
 
 const router = express.Router();
 

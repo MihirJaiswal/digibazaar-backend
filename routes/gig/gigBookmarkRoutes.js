@@ -1,6 +1,6 @@
 // routes/gigBookmarkRoutes.js
 import express from 'express';
-import { toggleGigBookmark } from '../controllers/gigBookmarkController.js';
+import { toggleGigBookmark } from '../../controllers/gig/gigBookmarkController.js';
 
 const router = express.Router();
 

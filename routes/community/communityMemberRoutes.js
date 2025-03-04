@@ -6,7 +6,7 @@ import {
   updateCommunityMemberRole,
   removeCommunityMember,
   leaveCommunity,
-} from '../controllers/communityMemberController.js';
+} from '../../controllers/community/communityMemberController.js';
 
 const router = express.Router();
 

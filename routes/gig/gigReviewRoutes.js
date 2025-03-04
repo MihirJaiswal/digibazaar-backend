@@ -1,6 +1,6 @@
 // routes/gigReviewRoutes.js
 import express from 'express';
-import { createGigReview, updateGigReview, deleteGigReview, getGigReviews } from '../controllers/gigReviewController.js';
+import { createGigReview, updateGigReview, deleteGigReview, getGigReviews } from '../../controllers/gig/gigReviewController.js';
 
 const router = express.Router();
 

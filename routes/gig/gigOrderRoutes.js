@@ -1,6 +1,6 @@
 // routes/gigOrderRoutes.js
 import express from 'express';
-import { createGigOrder, getGigOrder, updateGigOrderStatus, getOrdersForUser, createPaymentIntent, getOrdersForSeller, cancelGigOrder, getOrdersForBuyer } from '../controllers/gigOrderController.js';
+import { createGigOrder, getGigOrder, updateGigOrderStatus, getOrdersForUser, createPaymentIntent, getOrdersForSeller, cancelGigOrder, getOrdersForBuyer } from '../../controllers/gig/gigOrderController.js';
 
 const router = express.Router();
 

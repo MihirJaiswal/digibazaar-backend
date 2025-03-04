@@ -1,6 +1,6 @@
 // routes/gigLikeRoutes.js
 import express from 'express';
-import { toggleGigLike, getGigs } from '../controllers/gigLikeController.js';
+import { toggleGigLike, getGigs } from '../../controllers/gig/gigLikeController.js';
 
 const router = express.Router();
 

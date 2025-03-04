@@ -1,6 +1,6 @@
 // routes/gigStarsRoutes.js
 import express from 'express';
-import { addGigStar, removeGigStar, getGigStars, getGigStarCount } from '../controllers/gigStarsController.js';
+import { addGigStar, removeGigStar, getGigStars, getGigStarCount } from '../../controllers/gig/gigStarsController.js';
 
 const router = express.Router();
 

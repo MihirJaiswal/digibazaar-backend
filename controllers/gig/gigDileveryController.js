@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import createError from "../utils/createError.js";
+import createError from "../../utils/createError.js";
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 

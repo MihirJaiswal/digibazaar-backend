@@ -11,7 +11,7 @@ import {
   getLikesForPost,
   getAllPosts,
   getAllPostsByUser,
-} from '../controllers/communityPostController.js';
+} from '../../controllers/community/communityPostController.js';
 
 const router = express.Router();
 

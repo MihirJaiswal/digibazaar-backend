@@ -38,14 +38,12 @@ enum CategoryEnum {
   VIRTUAL_ASSISTANTS
 }
 
-
 enum TransactionType {
   DEPOSIT
   WITHDRAWAL
   PAYMENT
   REFUND
 }
-
 
 model User {
   id            String   @id @default(uuid())
@@ -65,21 +63,21 @@ model User {
 
   // Marketplace & Project Relations
   gigs                  Gig[]
-  gigOrders             GigOrder[]     @relation("GigBuyerOrders")
+  gigOrders             GigOrder[]       @relation("GigBuyerOrders")
   messages              Message[]
   gigReviews            GigReview[]
   gigStars              GigStar[]
   gigLikes              GigLike[]
-  conversationsAsSeller Conversation[] @relation("SellerConversations")
-  conversationsAsBuyer  Conversation[] @relation("BuyerConversations")
+  conversationsAsSeller Conversation[]   @relation("SellerConversations")
+  conversationsAsBuyer  Conversation[]   @relation("BuyerConversations")
   transactions          Transaction[]
-  followers             Follow[]       @relation("Followers")
-  following             Follow[]       @relation("Following")
+  followers             Follow[]         @relation("Followers")
+  following             Follow[]         @relation("Following")
   notifications         Notification[]
-  orderUpdates         GigOrderUpdate[]
-  refunds              Refund[]
-  deliveriesAsSeller   GigDelivery[]   @relation("DeliverySeller")
-  deliveriesAsBuyer    GigDelivery[]   @relation("DeliveryBuyer")
+  orderUpdates          GigOrderUpdate[]
+  refunds               Refund[]
+  deliveriesAsSeller    GigDelivery[]    @relation("DeliverySeller")
+  deliveriesAsBuyer     GigDelivery[]    @relation("DeliveryBuyer")
 
   // Community Relations
   communitiesCreated   Community[]        @relation("CreatorCommunities")
@@ -111,11 +109,11 @@ model Gig {
   updatedAt      DateTime     @updatedAt
 
   // Relations
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders    GigOrder[]
-  reviews   GigReview[]
-  likes     GigLike[]
-  stars     GigStar[]
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders  GigOrder[]
+  reviews GigReview[]
+  likes   GigLike[]
+  stars   GigStar[]
 }
 
 model GigStar {
@@ -144,61 +142,56 @@ model GigOrder {
   updatedAt     DateTime    @updatedAt
 
   // Relations
-  gig           Gig              @relation(fields: [gigId], references: [id], onDelete: Cascade)
-  buyer         User             @relation(fields: [buyerId], references: [id], name: "GigBuyerOrders", onDelete: Cascade)
-  seller        User             @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  updates       GigOrderUpdate[]
-  refunds       Refund[]
-  deliveries    GigDelivery[]
+  gig        Gig              @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  buyer      User             @relation(fields: [buyerId], references: [id], name: "GigBuyerOrders", onDelete: Cascade)
+  seller     User             @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  updates    GigOrderUpdate[]
+  refunds    Refund[]
+  deliveries GigDelivery[]
 }
 
-
 model GigOrderUpdate {
-  id                    String   @id @default(uuid())
-  gigOrderId            String
-  sellerId              String
-  title                 String
-  content               String
-  expectedDeliveryDate  DateTime?
-  createdAt             DateTime  @default(now())
+  id                   String    @id @default(uuid())
+  gigOrderId           String
+  sellerId             String
+  title                String
+  content              String
+  expectedDeliveryDate DateTime?
+  createdAt            DateTime  @default(now())
 
   // Relations
   gigOrder GigOrder @relation(fields: [gigOrderId], references: [id], onDelete: Cascade)
   seller   User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
 }
 
-
 model GigDelivery {
-  id          String   @id @default(uuid())
-  gigOrderId  String
-  sellerId    String
-  buyerId     String
-  fileUrl     String    // URL or path to the delivered file(s)
-  message     String    // Optional message from the seller
-  isAccepted  Boolean   @default(false) // Whether buyer approved the delivery
-  createdAt   DateTime  @default(now())
+  id         String   @id @default(uuid())
+  gigOrderId String
+  sellerId   String
+  buyerId    String
+  fileUrl    String // URL or path to the delivered file(s)
+  message    String // Optional message from the seller
+  isAccepted Boolean  @default(false) // Whether buyer approved the delivery
+  createdAt  DateTime @default(now())
 
   // Relations
-  gigOrder    GigOrder  @relation(fields: [gigOrderId], references: [id], onDelete: Cascade)
-  seller      User      @relation(name: "DeliverySeller", fields: [sellerId], references: [id], onDelete: Cascade)
-  buyer       User      @relation(name: "DeliveryBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  gigOrder GigOrder @relation(fields: [gigOrderId], references: [id], onDelete: Cascade)
+  seller   User     @relation(name: "DeliverySeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  buyer    User     @relation(name: "DeliveryBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
 }
-
 
 model Refund {
   id         String   @id @default(uuid())
   gigOrderId String
   userId     String
   amount     Float
-  status     String  // PENDING, PROCESSED, FAILED
+  status     String // PENDING, PROCESSED, FAILED
   createdAt  DateTime @default(now())
 
   // Relations
   gigOrder GigOrder @relation(fields: [gigOrderId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-
 
 model Conversation {
   id           String   @id @default(uuid())
@@ -254,15 +247,13 @@ model GigLike {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-
-
 model Transaction {
-  id          String   @id @default(uuid())
+  id          String          @id @default(uuid())
   userId      String
-  type        TransactionType// e.g., "Deposit", "Withdrawal", "Payment"
+  type        TransactionType // e.g., "Deposit", "Withdrawal", "Payment"
   amount      Float
   description String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime        @default(now())
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -429,6 +420,7 @@ model Product {
   reviews       ProductReview[]
   likes         ProductLike[]
   comments      ProductComment[]
+  StockMovement StockMovement[]
 }
 
 model ProductReview {
@@ -521,6 +513,7 @@ model Warehouse {
   inventories   Inventory[]
   shipments     Shipment[]
   PurchaseOrder PurchaseOrder[]
+  StockMovement StockMovement[]
 }
 
 model Inventory {
@@ -591,9 +584,9 @@ model Shipment {
   warehouseId      String
   shippingMethodId String?
   trackingNumber   String?
-  shippedAt        DateTime? // When the shipment left the warehouse
-  deliveredAt      DateTime? // When delivered to customer
-  status           String // e.g., "In Transit", "Delivered", "Delayed"
+  trackingStatus   String    @default("Pending") // New field: "Pending", "In Transit", "Delivered"
+  shippedAt        DateTime?
+  deliveredAt      DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -601,4 +594,17 @@ model Shipment {
   productOrder   ProductOrder    @relation(fields: [productOrderId], references: [id], onDelete: Cascade)
   warehouse      Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
   shippingMethod ShippingMethod? @relation(fields: [shippingMethodId], references: [id])
+}
+
+model StockMovement {
+  id          String   @id @default(uuid())
+  warehouseId String
+  productId   String
+  changeType  String // "INCOMING" (stock added) or "OUTGOING" (stock deducted)
+  quantity    Int
+  createdAt   DateTime @default(now())
+
+  // Relations
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
 }

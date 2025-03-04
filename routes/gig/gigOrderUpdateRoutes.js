@@ -1,5 +1,5 @@
 import express from 'express';
-import { updateGigOrderStatus, createGigOrderUpdate, deleteGigOrderUpdate, getGigOrderUpdates } from '../controllers/gigOrderUpdateController.js';
+import { updateGigOrderStatus, createGigOrderUpdate, deleteGigOrderUpdate, getGigOrderUpdates } from '../../controllers/gig/gigOrderUpdateController.js';
 
 const router = express.Router();
 
