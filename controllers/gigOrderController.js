@@ -94,7 +94,7 @@ export const createGigOrder = async (req, res, next) => {
         price: gig.price,       // Get price from gig details
         paymentIntent: paymentIntentId,
         requirement,
-        status: "IN_PROGRESS",
+        status: "PENDING",
       },
     });
 
@@ -105,6 +105,66 @@ export const createGigOrder = async (req, res, next) => {
     next(error);
   }
 };
+
+export const cancelGigOrder = async (req, res, next) => {
+  try {
+    console.log("🟡 Cancel Order Request Received. Params:", req.params);
+
+    const userId = verifyToken(req); // Get the authenticated user ID
+    console.log("✅ Authenticated User ID:", userId);
+
+    const { id } = req.params; // Get order ID
+
+    // Fetch order details
+    const order = await prisma.gigOrder.findUnique({ where: { id } });
+    console.log("🟢 Fetched Order Data:", order);
+
+    if (!order) {
+      console.error("❌ Order Not Found:", id);
+      return next(createError(404, "Order not found"));
+    }
+
+    // ✅ Only allow cancellation if status is `PENDING`
+    console.log("ℹ️ Current Order Status:", order.status);
+    if (order.status !== "PENDING") {
+      console.warn("⚠️ Order Cancellation Not Allowed. Current Status:", order.status);
+      return next(createError(400, "Order cannot be canceled after it has been started"));
+    }
+
+    // ✅ Only the buyer can cancel the order
+    if (order.buyerId !== userId) {
+      console.warn("🚫 Unauthorized Cancellation Attempt by User:", userId);
+      return next(createError(403, "Unauthorized: Only the buyer can cancel this order"));
+    }
+
+    // ✅ Update order status to `CANCELED`
+    const canceledOrder = await prisma.gigOrder.update({
+      where: { id },
+      data: { status: "CANCELLED" },
+    });
+    console.log("🟢 Order Successfully Canceled:", canceledOrder);
+
+    // ✅ Refund payment if already paid
+    if (order.paymentIntent) {
+      console.log("💰 Processing Refund for Payment Intent:", order.paymentIntent);
+      try {
+        await stripe.refunds.create({
+          payment_intent: order.paymentIntent,
+        });
+        console.log("✅ Refund Processed Successfully for:", order.paymentIntent);
+      } catch (refundError) {
+        console.error("❌ Error Processing Refund:", refundError);
+        return next(createError(500, "Refund processing failed"));
+      }
+    }
+
+    res.status(200).json({ message: "Order canceled successfully", canceledOrder });
+  } catch (error) {
+    console.error("❌ Error in cancelGigOrder:", error);
+    next(error);
+  }
+};
+
 
 
 
@@ -136,18 +196,32 @@ export const getGigOrder = async (req, res, next) => {
 // Update the controller function
 export const updateGigOrderStatus = async (req, res, next) => {
   try {
-    const userId = req.userId; // Get userId from the request (set by verifyToken middleware)
+    console.log("🟡 Update Order Status Request Received");
+    console.log("🟡 Request Params:", req.params);
+    console.log("🟡 Request Body:", req.body);
+    console.log("🟡 Request Headers Authorization:", req.headers.authorization);
+    console.log("🟡 Request Cookies:", req.cookies);
+
+    // Use verifyToken to extract the authenticated user ID
+    const userId = verifyToken(req);
+    console.log("✅ Authenticated User ID (from verifyToken):", userId);
+
     const { id } = req.params; // Order ID
     const { status } = req.body; // New status
+    console.log("ℹ️ Updating Order ID:", id, "to status:", status);
 
     // Find the order by its ID
     const order = await prisma.gigOrder.findUnique({ where: { id } });
+    console.log("🟢 Fetched Order Data:", order);
+
     if (!order) {
+      console.error("❌ Order not found:", id);
       return res.status(404).json({ error: 'Order not found' });
     }
 
     // Check if the logged-in user is the seller for this order
     if (order.sellerId !== userId) {
+      console.error("🚫 Unauthorized update attempt. Order seller:", order.sellerId, "User:", userId);
       return res.status(403).json({ error: 'Only the seller can update the order status' });
     }
 
@@ -156,13 +230,15 @@ export const updateGigOrderStatus = async (req, res, next) => {
       where: { id },
       data: { status },
     });
+    console.log("🟢 Order status updated successfully:", updatedOrder);
 
     res.status(200).json(updatedOrder);
   } catch (error) {
-    console.error('Error in updateGigOrderStatus:', error);
+    console.error("❌ Error in updateGigOrderStatus:", error);
     next(error);
   }
 };
+
 
 
 // Get all orders for a user
