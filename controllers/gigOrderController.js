@@ -281,6 +281,24 @@ export const getOrdersForSeller = async (req, res, next) => {
   }
 };
 
+//get all orders for a buyer
+export const getOrdersForBuyer = async (req, res, next) => {
+  try {
+    const { buyerId } = req.params; // Assuming buyerId is passed as a parameter
+    const orders = await prisma.gigOrder.findMany({
+      where: { buyerId },
+      include: {
+        gig: true,
+        seller: true,
+      },
+    });
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error('Error in getOrdersForBuyer:', error);
+    next(error);
+  }
+};
+
 
 
 

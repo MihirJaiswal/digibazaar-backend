@@ -1,6 +1,6 @@
 // routes/gigOrderRoutes.js
 import express from 'express';
-import { createGigOrder, getGigOrder, updateGigOrderStatus, getOrdersForUser, createPaymentIntent, getOrdersForSeller, cancelGigOrder } from '../controllers/gigOrderController.js';
+import { createGigOrder, getGigOrder, updateGigOrderStatus, getOrdersForUser, createPaymentIntent, getOrdersForSeller, cancelGigOrder, getOrdersForBuyer } from '../controllers/gigOrderController.js';
 
 const router = express.Router();
 
@@ -24,5 +24,8 @@ router.get('/seller/:sellerId', getOrdersForSeller);
 
 //cancel a gig order
 router.put('/:id/cancel', cancelGigOrder);
+
+//get all orders for a buyer
+router.get('/buyer/:buyerId', getOrdersForBuyer);
 
 export default router;

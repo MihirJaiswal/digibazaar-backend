@@ -87,45 +87,55 @@ export const updateGigOrderStatus = async (req, res, next) => {
  *    - The seller provides a gigOrderId, title, and content.
  */
 export const createGigOrderUpdate = async (req, res, next) => {
-  try {
-    console.log("🟡 Create Order Update Request Received");
-    console.log("🟡 Request Body:", req.body);
-
-    const sellerId = verifyToken(req);
-    console.log("✅ Authenticated Seller ID (from verifyToken):", sellerId);
-
-    const { gigOrderId, title, content } = req.body;
-    if (!gigOrderId || !title || !content) {
-      console.error("❌ Missing required fields in request body:", req.body);
-      return next(createError(400, "Missing required fields: gigOrderId, title, and content are required."));
-    }
-
-    // Check that the order exists and that the seller is authorized
-    const order = await prisma.gigOrder.findUnique({ where: { id: gigOrderId } });
-    console.log("🟢 Fetched Order for Update:", order);
-    if (!order) {
-      return next(createError(404, "Order not found"));
-    }
-    if (order.sellerId !== sellerId) {
-      return next(createError(403, "Unauthorized: Only the seller can add updates for this order"));
-    }
-
-    // Create the order update
-    const orderUpdate = await prisma.gigOrderUpdate.create({
-      data: {
+    try {
+      console.log("🟡 Create Order Update Request Received");
+      console.log("🟡 Request Body:", req.body);
+  
+      const sellerId = verifyToken(req);
+      console.log("✅ Authenticated Seller ID (from verifyToken):", sellerId);
+  
+      // Destructure expectedDeliveryDate as optional
+      const { gigOrderId, title, content, expectedDeliveryDate } = req.body;
+      if (!gigOrderId || !title || !content) {
+        console.error("❌ Missing required fields in request body:", req.body);
+        return next(createError(400, "Missing required fields: gigOrderId, title, and content are required."));
+      }
+  
+      // Check that the order exists and that the seller is authorized
+      const order = await prisma.gigOrder.findUnique({ where: { id: gigOrderId } });
+      console.log("🟢 Fetched Order for Update:", order);
+      if (!order) {
+        return next(createError(404, "Order not found"));
+      }
+      if (order.sellerId !== sellerId) {
+        return next(createError(403, "Unauthorized: Only the seller can add updates for this order"));
+      }
+  
+      // Prepare update data and conditionally add expectedDeliveryDate if provided
+      const updateData = {
         gigOrderId,
         sellerId,
         title,
         content,
-      },
-    });
-    console.log("🟢 Order update created successfully:", orderUpdate);
-    res.status(201).json(orderUpdate);
-  } catch (error) {
-    console.error("❌ Error in createGigOrderUpdate:", error);
-    next(error);
-  }
-};
+      };
+  
+      if (expectedDeliveryDate) {
+        // Optionally, parse to a Date object if necessary
+        updateData.expectedDeliveryDate = new Date(expectedDeliveryDate);
+      }
+  
+      // Create the order update
+      const orderUpdate = await prisma.gigOrderUpdate.create({
+        data: updateData,
+      });
+      console.log("🟢 Order update created successfully:", orderUpdate);
+      res.status(201).json(orderUpdate);
+    } catch (error) {
+      console.error("❌ Error in createGigOrderUpdate:", error);
+      next(error);
+    }
+  };
+  
 
 /**
  * 3. Delete Gig Order Update Controller

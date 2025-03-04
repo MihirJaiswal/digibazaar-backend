@@ -78,6 +78,8 @@ model User {
   notifications         Notification[]
   orderUpdates         GigOrderUpdate[]
   refunds              Refund[]
+  deliveriesAsSeller   GigDelivery[]   @relation("DeliverySeller")
+  deliveriesAsBuyer    GigDelivery[]   @relation("DeliveryBuyer")
 
   // Community Relations
   communitiesCreated   Community[]        @relation("CreatorCommunities")
@@ -147,22 +149,40 @@ model GigOrder {
   seller        User             @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   updates       GigOrderUpdate[]
   refunds       Refund[]
+  deliveries    GigDelivery[]
 }
 
 
 model GigOrderUpdate {
-  id        String   @id @default(uuid())
-  gigOrderId String
-  sellerId  String
-  title     String
-  content   String
-  createdAt DateTime @default(now())
+  id                    String   @id @default(uuid())
+  gigOrderId            String
+  sellerId              String
+  title                 String
+  content               String
+  expectedDeliveryDate  DateTime?
+  createdAt             DateTime  @default(now())
 
   // Relations
   gigOrder GigOrder @relation(fields: [gigOrderId], references: [id], onDelete: Cascade)
   seller   User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
 }
 
+
+model GigDelivery {
+  id          String   @id @default(uuid())
+  gigOrderId  String
+  sellerId    String
+  buyerId     String
+  fileUrl     String    // URL or path to the delivered file(s)
+  message     String    // Optional message from the seller
+  isAccepted  Boolean   @default(false) // Whether buyer approved the delivery
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  gigOrder    GigOrder  @relation(fields: [gigOrderId], references: [id], onDelete: Cascade)
+  seller      User      @relation(name: "DeliverySeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  buyer       User      @relation(name: "DeliveryBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+}
 
 
 model Refund {
