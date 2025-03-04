@@ -59,6 +59,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import subCategoryRoutes from './routes/subCategoryRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import gigOrderUpdateRoutes from './routes/gigOrderUpdateRoutes.js';
 
 // Mount API Routes
 // If a route requires authentication, attach the verifyToken middleware before the route handler.
@@ -75,6 +76,7 @@ app.use('/api/gig-toggles-likes', gigLikeRoutes);
 app.use('/api/gig-orders', gigOrderRoutes);
 app.use('/api/gig-reviews',  gigReviewRoutes);
 app.use('/api/gig-stars',  gigStarsRoutes);
+app.use('/api/gig-order-updates', gigOrderUpdateRoutes);
 app.use('/api/gigs', gigRoutes);
 app.use('/api/messages', verifyToken, messageRoutes);
 app.use('/api/notifications', verifyToken, notificationRoutes);

@@ -154,6 +154,7 @@ model GigOrderUpdate {
   id        String   @id @default(uuid())
   gigOrderId String
   sellerId  String
+  title     String
   content   String
   createdAt DateTime @default(now())
 
