@@ -8,19 +8,35 @@ const prisma = new PrismaClient();
  */
 export const createWarehouse = async (req, res, next) => {
   try {
+    // Ensure proper types and set defaults
+    const contactInfo = req.body.contactInfo ? JSON.parse(req.body.contactInfo) : {};
+    const coordinates = req.body.coordinates ? JSON.parse(req.body.coordinates) : {};
+    const totalStock = req.body.totalStock ? parseFloat(req.body.totalStock) : 0;
+    const usedCapacity = req.body.usedCapacity ? parseFloat(req.body.usedCapacity) : 0;
+    const totalCapacity = req.body.capacity ? parseFloat(req.body.capacity) : 0;
+    
+    // Calculate available capacity dynamically
+    const availableCapacity = totalCapacity - usedCapacity;
+
     const newWarehouse = await prisma.warehouse.create({
       data: {
         name: req.body.name,
         location: req.body.location,
-        capacity: req.body.capacity,
-        contactInfo: req.body.contactInfo,
+        capacity: totalCapacity,
+        contactInfo,
+        coordinates,
+        totalStock,
+        availableCapacity,
+        usedCapacity,
       },
     });
+
     res.status(201).json(newWarehouse);
   } catch (err) {
     next(err);
   }
 };
+
 
 /**
  * Get all warehouses.
@@ -53,14 +69,27 @@ export const getWarehouse = async (req, res, next) => {
 /**
  * Update a warehouse.
  */
+/**
+ * Update a warehouse.
+ */
 export const updateWarehouse = async (req, res, next) => {
   try {
+    // Log the incoming request parameters and body for debugging
+    console.log('Request Parameters:', req.params);
+    console.log('Request Body:', req.body);
+
     const updatedWarehouse = await prisma.warehouse.update({
       where: { id: req.params.id },
       data: req.body,
     });
+
+    // Log the updated warehouse for debugging
+    console.log('Updated Warehouse:', updatedWarehouse);
+
     res.status(200).json(updatedWarehouse);
   } catch (err) {
+    // Log the error for debugging
+    console.error('Error updating warehouse:', err);
     next(err);
   }
 };

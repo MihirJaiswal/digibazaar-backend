@@ -532,6 +532,10 @@ model Warehouse {
   contactInfo Json? // e.g., { "phone": "...", "email": "..." }
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  coordinates Json? // e.g., { "latitude": 37.7749, "longitude": -122.4194 }
+  availableCapacity Float? // Available capacity (units or weight)
+  usedCapacity Float? // Used capacity (units or weight)
+  totalStock Float? // Total stock (units or weight)
 
   // Relations
   inventories   Inventory[]

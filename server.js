@@ -66,6 +66,7 @@ import warehouseRoutes from './routes/warehouse/warehouseRoutes.js';
 import stockRoutes from './routes/warehouse/stockRoutes.js';
 import reportRoutes from './routes/warehouse/reportRoutes.js';
 import storeRoutes from './routes/store/storeRoutes.js';
+import variantRoutes from './routes/warehouse/variantRoutes.js';
 
 // Mount API Routes
 // If a route requires authentication, attach the verifyToken middleware before the route handler.
@@ -95,7 +96,7 @@ app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/stores', storeRoutes);
-
+app.use('/api/variants', variantRoutes);
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err);

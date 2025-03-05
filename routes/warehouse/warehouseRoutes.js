@@ -4,6 +4,7 @@ import {
   getWarehouses,
   getWarehouse,
   deleteWarehouse,
+  updateWarehouse,
   getWarehouseStock,
   assignProductLocation
 } from "../../controllers/warehouse/warehouseController.js";
@@ -15,6 +16,7 @@ router.post("/", createWarehouse);
 router.get("/", getWarehouses);
 router.get("/:id", getWarehouse);
 router.delete("/:id", deleteWarehouse);
+router.put("/:id", updateWarehouse);
 router.get("/:id/stock", getWarehouseStock);
 router.post("/assign-location", assignProductLocation);
 
