@@ -379,19 +379,37 @@ model Vote {
 // Shopify Clone & Warehouse Management Models
 
 model Store {
-  id          String   @id @default(uuid())
-  ownerId     String   @unique
-  name        String
-  description String?
-  theme       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(uuid())
+  ownerId      String   @unique
+  name         String
+  description  String?
+  theme        String? // User can select a theme
+  logo         String? // Store logo URL
+  domain       String? @unique // Custom domain like mystore.com
+  subdomain    String? @unique // Subdomain like mystore.shopify.com
+  isActive     Boolean  @default(true) // Can be disabled by admin
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relations
-  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  products        Product[]
-  orders          ProductOrder[]
+  owner          User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  products       Product[]
+  orders         ProductOrder[]
   shippingMethods ShippingMethod[]
+  settings       StoreSetting?
+}
+
+model StoreSetting {
+  id             String  @id @default(uuid())
+  storeId        String  @unique
+  currency       String  @default("USD") // Default currency
+  taxRate        Float? // Optional tax rate
+  shippingEnabled Boolean @default(true)
+  analytics      Json? // Store analytics settings
+  createdAt      DateTime @default(now())
+
+  // Relations
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }
 
 model Product {
@@ -407,8 +425,12 @@ model Product {
   weight      Float? // For shipping calculations
   dimensions  Json? // e.g., {"length":10, "width":5, "height":2}
   tags        Json? // Array of tags/categories
+  costPerItem Float? // Cost per item
+  profit      Float? // Profit per item
+  margin      Float? // Margin per item
   categoryId  String? // Optional link to a product category
   createdAt   DateTime @default(now())
+  isPublished Boolean  @default(false)
   updatedAt   DateTime @updatedAt
 
   // Relations
@@ -450,7 +472,9 @@ model ProductComment {
 model ProductVariant {
   id              String   @id @default(uuid())
   productId       String
-  name            String? // e.g., "Red, Large"
+  name            String? // e.g., "color", "size", "material"
+  value           String? // e.g., "Red, Large", "cotton"
+  price           Float?
   additionalPrice Float    @default(0)
   stock           Int      @default(0)
   createdAt       DateTime @default(now())

@@ -60,6 +60,13 @@ import transactionRoutes from './routes/transactionRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import gigOrderUpdateRoutes from './routes/gig/gigOrderUpdateRoutes.js';
 import gigDeliveryRoutes from './routes/gig/gigDileveryRoutes.js';  
+import productRoutes from './routes/warehouse/productRoutes.js';
+import orderRoutes from './routes/warehouse/orderRoutes.js';
+import warehouseRoutes from './routes/warehouse/warehouseRoutes.js';
+import stockRoutes from './routes/warehouse/stockRoutes.js';
+import reportRoutes from './routes/warehouse/reportRoutes.js';
+import storeRoutes from './routes/store/storeRoutes.js';
+
 // Mount API Routes
 // If a route requires authentication, attach the verifyToken middleware before the route handler.
 app.use('/api/auth', authRoutes);
@@ -82,6 +89,12 @@ app.use('/api/messages', verifyToken, messageRoutes);
 app.use('/api/notifications', verifyToken, notificationRoutes);
 app.use('/api/transactions', verifyToken, transactionRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/warehouses', warehouseRoutes);
+app.use('/api/stock', stockRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/stores', storeRoutes);
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
