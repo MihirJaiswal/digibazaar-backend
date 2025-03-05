@@ -15,6 +15,7 @@ enum OrderStatus {
   DELIVERED
   REFUNDED
   REJECTED
+  ACCEPTED
 }
 
 enum PaymentStatus {

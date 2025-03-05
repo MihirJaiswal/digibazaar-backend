@@ -10,6 +10,29 @@ export const stockIn = async (req, res, next) => {
   try {
     const { warehouseId, productId, quantity } = req.body;
 
+    // Fetch current warehouse details
+    const warehouse = await prisma.warehouse.findUnique({
+      where: { id: warehouseId },
+    });
+
+    if (!warehouse) {
+      return res.status(404).json({ message: "Warehouse not found" });
+    }
+
+    const newUsedCapacity = warehouse.usedCapacity + quantity;
+
+    // Prevent exceeding total capacity
+    if (newUsedCapacity > warehouse.capacity) {
+      return res.status(400).json({ message: "Not enough space in the warehouse" });
+    }
+
+    // Update warehouse usedCapacity
+    await prisma.warehouse.update({
+      where: { id: warehouseId },
+      data: { usedCapacity: newUsedCapacity },
+    });
+
+    // Update or insert stock in inventory
     const updatedInventory = await prisma.inventory.upsert({
       where: { warehouseId_productId: { warehouseId, productId } },
       update: { quantity: { increment: quantity } },
@@ -31,6 +54,7 @@ export const stockIn = async (req, res, next) => {
     next(err);
   }
 };
+
 
 /**
  * Deduct stock when an order is processed (Stock OUT).
@@ -81,6 +105,37 @@ export const getStockMovements = async (req, res, next) => {
     });
 
     res.status(200).json(movements);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getProductInventory = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+
+    const inventory = await prisma.inventory.findMany({
+      where: { productId },
+      include: { warehouse: true }, // Fetch warehouse details too
+    });
+
+    res.status(200).json(inventory);
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const getWarehouseInventory = async (req, res, next) => {
+  try {
+    const { warehouseId } = req.params;
+
+    const inventory = await prisma.inventory.findMany({
+      where: { warehouseId },
+      include: { product: true }, // Fetch product details too
+    });
+
+    res.status(200).json(inventory);
   } catch (err) {
     next(err);
   }
