@@ -69,6 +69,7 @@ import storeRoutes from './routes/store/storeRoutes.js';
 import variantRoutes from './routes/warehouse/variantRoutes.js';
 import shipmentRoutes from './routes/warehouse/shipmentRoutes.js';
 
+
 // Mount API Routes
 // If a route requires authentication, attach the verifyToken middleware before the route handler.
 app.use('/api/auth', authRoutes);

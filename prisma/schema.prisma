@@ -47,10 +47,10 @@ enum TransactionType {
 }
 
 enum TrackingStatus {
-  PENDING      
-  IN_TRANSIT   
-  DELIVERED    
-  RETURNED     
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  RETURNED
 }
 
 model User {
@@ -387,34 +387,40 @@ model Vote {
 // Shopify Clone & Warehouse Management Models
 
 model Store {
-  id           String   @id @default(uuid())
-  ownerId      String   @unique
-  name         String
-  description  String?
-  theme        String? // User can select a theme
-  logo         String? // Store logo URL
-  domain       String? @unique // Custom domain like mystore.com
-  subdomain    String? @unique // Subdomain like mystore.shopify.com
-  isActive     Boolean  @default(true) // Can be disabled by admin
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(uuid())
+  ownerId     String   @unique
+  name        String
+  description String?
+  theme       String? // User can select a theme
+  logo        String? // Store logo URL
+  domain      String?  @unique // Custom domain like mystore.com
+  subdomain   String?  @unique // Subdomain like mystore.shopify.com
+  isActive    Boolean  @default(true) // Can be disabled by admin
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  owner          User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  products       Product[]
-  orders         ProductOrder[]
+  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  products        Product[]
+  orders          ProductOrder[]
   shippingMethods ShippingMethod[]
-  settings       StoreSetting?
+  settings        StoreSetting?
+  warehouses      Warehouse[]
+  inventories     Inventory[]
+  purchaseOrders  PurchaseOrder[]
+  shipments       Shipment[]
+  StockMovement   StockMovement[]
+  suppliers       Supplier[]
 }
 
 model StoreSetting {
-  id             String  @id @default(uuid())
-  storeId        String  @unique
-  currency       String  @default("USD") // Default currency
-  taxRate        Float? // Optional tax rate
-  shippingEnabled Boolean @default(true)
-  analytics      Json? // Store analytics settings
-  createdAt      DateTime @default(now())
+  id              String   @id @default(uuid())
+  storeId         String   @unique
+  currency        String   @default("USD") // Default currency
+  taxRate         Float? // Optional tax rate
+  shippingEnabled Boolean  @default(true)
+  analytics       Json? // Store analytics settings
+  createdAt       DateTime @default(now())
 
   // Relations
   store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
@@ -442,7 +448,7 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  store         Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  Store         Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
   variants      ProductVariant[]
   orderItems    OrderItem[]
   inventories   Inventory[]
@@ -533,23 +539,25 @@ model OrderItem {
 }
 
 model Warehouse {
-  id          String   @id @default(uuid())
-  name        String
-  location    String // Full address, city, or region
-  capacity    Int // Total capacity (units or weight)
-  contactInfo Json? // e.g., { "phone": "...", "email": "..." }
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  coordinates Json? // e.g., { "latitude": 37.7749, "longitude": -122.4194 }
+  id                String   @id @default(uuid())
+  name              String
+  location          String // Full address, city, or region
+  capacity          Int // Total capacity (units or weight)
+  contactInfo       Json? // e.g., { "phone": "...", "email": "..." }
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  coordinates       Json? // e.g., { "latitude": 37.7749, "longitude": -122.4194 }
   availableCapacity Float? // Available capacity (units or weight)
-  usedCapacity Float? // Used capacity (units or weight)
-  totalStock Float? // Total stock (units or weight)
+  usedCapacity      Float? // Used capacity (units or weight)
+  totalStock        Float? // Total stock (units or weight)
 
   // Relations
   inventories   Inventory[]
   shipments     Shipment[]
   PurchaseOrder PurchaseOrder[]
   StockMovement StockMovement[]
+  Store         Store?          @relation(fields: [storeId], references: [id])
+  storeId       String
 }
 
 model Inventory {
@@ -565,6 +573,8 @@ model Inventory {
   // Relations
   warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
   product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  Store     Store?    @relation(fields: [storeId], references: [id])
+  storeId   String
 
   @@unique([warehouseId, productId])
 }
@@ -578,6 +588,8 @@ model Supplier {
 
   // Relations
   purchaseOrders PurchaseOrder[]
+  Store          Store?          @relation(fields: [storeId], references: [id])
+  storeId        String
 }
 
 model PurchaseOrder {
@@ -596,6 +608,8 @@ model PurchaseOrder {
   supplier  Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
   product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  Store     Store?    @relation(fields: [storeId], references: [id])
+  storeId   String
 }
 
 model ShippingMethod {
@@ -609,27 +623,29 @@ model ShippingMethod {
   updatedAt             DateTime @updatedAt
 
   // Relations
-  store     Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  Store     Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
   orders    ProductOrder[]
   shipments Shipment[]
 }
 
 model Shipment {
-  id               String    @id @default(uuid())
-  productOrderId   String    @unique
+  id               String         @id @default(uuid())
+  productOrderId   String         @unique
   warehouseId      String
   shippingMethodId String
   trackingNumber   String?
   trackingStatus   TrackingStatus @default(PENDING)
   shippedAt        DateTime?
   deliveredAt      DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   // Relations
   productOrder   ProductOrder    @relation(fields: [productOrderId], references: [id], onDelete: Cascade)
   warehouse      Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
   shippingMethod ShippingMethod? @relation(fields: [shippingMethodId], references: [id])
+  Store          Store?          @relation(fields: [storeId], references: [id])
+  storeId        String
 }
 
 model StockMovement {
@@ -643,4 +659,6 @@ model StockMovement {
   // Relations
   warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
   product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  Store     Store?    @relation(fields: [storeId], references: [id])
+  storeId   String
 }
