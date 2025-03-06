@@ -46,6 +46,13 @@ enum TransactionType {
   REFUND
 }
 
+enum TrackingStatus {
+  PENDING      
+  IN_TRANSIT   
+  DELIVERED    
+  RETURNED     
+}
+
 model User {
   id            String   @id @default(uuid())
   email         String   @unique
@@ -611,9 +618,9 @@ model Shipment {
   id               String    @id @default(uuid())
   productOrderId   String    @unique
   warehouseId      String
-  shippingMethodId String?
+  shippingMethodId String
   trackingNumber   String?
-  trackingStatus   String    @default("Pending") // New field: "Pending", "In Transit", "Delivered"
+  trackingStatus   TrackingStatus @default(PENDING)
   shippedAt        DateTime?
   deliveredAt      DateTime?
   createdAt        DateTime  @default(now())
