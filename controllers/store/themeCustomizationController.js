@@ -45,7 +45,7 @@ export const getThemeCustomization = async (req, res) => {
       });
   
       if (!customization) {
-        return res.status(404).json({ message: 'Theme customization not found for this store' });
+        return res.status(201).json({ message: 'Theme customization not found for this store' });
       }
   
       res.status(200).json(customization);
@@ -76,7 +76,7 @@ export const getThemeCustomization = async (req, res) => {
         });
 
         if (!customization) {
-            return res.status(404).json({ message: "Theme customization not found for this store" });
+            return res.status(201).json({ message: "Theme customization not found for this store" });
         }
 
         res.status(200).json(customization);

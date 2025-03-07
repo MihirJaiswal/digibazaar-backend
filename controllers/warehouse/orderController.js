@@ -1,9 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import createError from "../../utils/createError.js";
 import jwt from "jsonwebtoken";
+import Stripe from "stripe";
 
 const prisma = new PrismaClient();
-
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 /**
  * Function to verify the JWT token and get user details
  */
@@ -23,32 +24,154 @@ const verifyToken = (req) => {
   }
 };
 
+
+
+// In a paymentController.js file
+export const createPaymentIntentForProductOrder = async (req, res, next) => {
+  try {
+    const { productId, storeId } = req.body;
+    console.log("Creating Payment Intent for productId:", productId, "storeId:", storeId);
+    if (!productId || !storeId) {
+      return next(createError(400, "Missing productId or storeId"));
+    }
+
+    // Fetch product to get the price.
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+    });
+    if (!product) {
+      return next(createError(404, "Product not found"));
+    }
+
+    // Calculate amount (in cents for USD; adjust if needed)
+    const amount = Math.round(product.price * 100);
+    console.log("Calculated amount (cents):", amount);
+
+    // Create a Payment Intent on Stripe
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: "inr", // Adjust currency as needed
+      payment_method_types: ["card"],
+      description: `Payment for product: ${product.title}`,
+    });
+
+    console.log("Stripe Payment Intent created:", paymentIntent);
+    res.status(200).json({
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+    });
+  } catch (error) {
+    console.error("Error creating Payment Intent:", error);
+    next(error);
+  }
+};
+
+
+
 /**
  * Create a new order (Only the logged-in user can create an order for themselves).
  */
 export const createOrder = async (req, res, next) => {
   try {
-    const user = verifyToken(req); // Authenticate user
-    const userId = user; // Get the user ID from the token
+    console.log("🔹 Received Request:");
+    console.log("Method:", req.method);
+    console.log("URL:", req.originalUrl);
+    console.log("Headers:", req.headers);
+    console.log("Cookies:", req.cookies);
+    console.log("Body:", req.body);
 
-    if (userId !== req.body.userId) {
-      return next(createError(403, "You can only create an order for yourself.")); // Ensure user is creating order for themselves
+    // Extract token from headers or cookies.
+    let token = req.headers.authorization;
+    if (!token) {
+      token = req.cookies?.accessToken;
+    }
+    if (!token) {
+      console.log("❌ Authentication token is missing");
+      return next(createError(401, "Authentication token is missing"));
+    }
+    if (token.startsWith("Bearer ")) {
+      token = token.slice(7).trim();
+    }
+    console.log("✅ Cleaned token:", token);
+
+    // Decode the token and extract buyer's user id.
+    const decoded = jwt.verify(token, process.env.JWT_KEY);
+    console.log("Decoded token:", decoded);
+    const buyerId = decoded.id;
+    console.log("Extracted buyerId:", buyerId);
+
+    // Extract required fields from the request body.
+    const { storeId, shippingAddress, totalPrice, items } = req.body;
+    let { paymentIntentId } = req.body; // may be undefined
+    console.log("Extracted order details:", { storeId, paymentIntentId, shippingAddress, totalPrice, items });
+    if (!storeId || !shippingAddress || !totalPrice || !items) {
+      console.log("❌ Missing required fields in order payload (excluding paymentIntentId)");
+      return next(createError(400, "Missing required fields"));
     }
 
+    // Fetch the store using the provided storeId.
+    console.log("Fetching store with storeId:", storeId);
+    const store = await prisma.store.findUnique({
+      where: { id: storeId },
+    });
+    console.log("Fetched store:", store);
+    if (!store) {
+      console.log("❌ Store not found for storeId:", storeId);
+      return next(createError(404, "Store not found"));
+    }
+
+    // Prevent store owners from creating orders for their own store.
+    if (store.ownerId === buyerId) {
+      console.log("❌ Buyer is the store owner. Order creation not allowed.");
+      return next(createError(403, "Store owners cannot create orders for their own store."));
+    }
+
+    // If paymentIntentId is not provided, create a PaymentIntent internally.
+    if (!paymentIntentId) {
+      console.log("No paymentIntentId provided. Creating PaymentIntent internally...");
+      // Here, we assume totalPrice is in dollars; convert to cents.
+      const amount = Math.round(totalPrice * 100);
+      console.log("Calculated amount (cents):", amount);
+
+      // Create a PaymentIntent with Stripe.
+      const newPaymentIntent = await stripe.paymentIntents.create({
+        amount,
+        currency: "inr", // Adjust as needed (or "inr" if required)
+        payment_method_types: ["card"],
+        description: `Payment for order at store ${store.name}`,
+      });
+      paymentIntentId = newPaymentIntent.id;
+      console.log("Created PaymentIntent internally:", newPaymentIntent);
+    } else {
+      // If provided, verify that the PaymentIntent succeeded.
+      console.log("Retrieving provided PaymentIntent with ID:", paymentIntentId);
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      console.log("Retrieved PaymentIntent:", paymentIntent);
+      if (paymentIntent.status !== "succeeded") {
+        console.log("❌ Provided PaymentIntent not completed. Status:", paymentIntent.status);
+        return next(createError(400, "Payment not completed"));
+      }
+    }
+
+    // Create a new order in the database using the verified buyerId.
+    console.log("Creating new order in the database...");
     const newOrder = await prisma.productOrder.create({
       data: {
-        storeId: req.body.storeId,
-        userId: userId, // Ensure order belongs to the authenticated user
-        totalPrice: req.body.totalPrice,
+        storeId,
+        userId: buyerId,
+        totalPrice,
         status: "PENDING",
-        shippingAddress: req.body.shippingAddress,
-        paymentStatus: "PENDING",
-        items: { create: req.body.items }, // Expecting an array of items
+        shippingAddress,
+        paymentStatus: "PENDING", // update later if needed
+        paymentIntent: paymentIntentId,
+        items: { create: items },
       },
     });
+    console.log("✅ New order created:", newOrder);
 
     res.status(201).json(newOrder);
   } catch (err) {
+    console.error("❌ Error in createOrder:", err);
     next(err);
   }
 };

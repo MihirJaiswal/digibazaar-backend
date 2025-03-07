@@ -7,8 +7,9 @@ import {
   deleteProduct,
   getStock,
   updateStock,
-  getLowStockProducts
+  getLowStockProducts,
 } from "../../controllers/warehouse/productController.js";
+import {getProductsByStoreName} from "../../controllers/warehouse/productDisplay.js";
 
 const router = express.Router();
 

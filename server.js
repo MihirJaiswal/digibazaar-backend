@@ -68,6 +68,7 @@ import reportRoutes from './routes/warehouse/reportRoutes.js';
 import storeRoutes from './routes/store/storeRoutes.js';
 import variantRoutes from './routes/warehouse/variantRoutes.js';
 import shipmentRoutes from './routes/warehouse/shipmentRoutes.js';
+import productDisplayRoutes from './routes/warehouse/productDisplayRoutes.js';
 
 
 // Mount API Routes
@@ -100,6 +101,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/variants', variantRoutes);
 app.use('/api/shipments', shipmentRoutes);
+app.use('/api/product-display', productDisplayRoutes);
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err);
