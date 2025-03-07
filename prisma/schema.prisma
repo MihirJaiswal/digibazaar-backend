@@ -53,6 +53,57 @@ enum TrackingStatus {
   RETURNED
 }
 
+enum StoreCategory {
+  FASHION
+  ELECTRONICS
+  GROCERY
+  HOME_DECOR
+  BEAUTY
+  TOYS
+  SPORTS
+  AUTOMOTIVE
+  BOOKS
+  OTHER
+}
+
+enum Language {
+  EN
+  ES
+  FR
+  DE
+  IT
+  PT
+  HI
+  ZH
+  JA
+  AR
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+  INR
+  JPY
+  AUD
+  CAD
+  CNY
+  BRL
+}
+
+enum Timezone {
+  UTC
+  EST
+  CST
+  PST
+  IST
+  GMT
+  CET
+  EET
+  JST
+  AEST
+}
+
 model User {
   id            String   @id @default(uuid())
   email         String   @unique
@@ -387,30 +438,38 @@ model Vote {
 // Shopify Clone & Warehouse Management Models
 
 model Store {
-  id          String   @id @default(uuid())
-  ownerId     String   @unique
-  name        String
-  description String?
-  theme       String? // User can select a theme
-  logo        String? // Store logo URL
-  domain      String?  @unique // Custom domain like mystore.com
-  subdomain   String?  @unique // Subdomain like mystore.shopify.com
-  isActive    Boolean  @default(true) // Can be disabled by admin
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                   String         @id @default(uuid())
+  ownerId              String         @unique
+  name                 String         @unique
+  description          String?
+  category             StoreCategory?
+  language             Language?
+  currency             Currency?
+  timezone             Timezone?
+  enableBlog           Boolean        @default(false)
+  enableProductReviews Boolean        @default(false)
+  theme                String? // User can select a theme
+  logo                 String? // Store logo URL
+  domain               String?        @unique // Custom domain like mystore.com
+  subdomain            String?        @unique // Subdomain like mystore.shopify.com
+  isActive             Boolean        @default(true) // Can be disabled by admin
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  isPublished          Boolean        @default(false)
 
   // Relations
-  owner           User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  products        Product[]
-  orders          ProductOrder[]
-  shippingMethods ShippingMethod[]
-  settings        StoreSetting?
-  warehouses      Warehouse[]
-  inventories     Inventory[]
-  purchaseOrders  PurchaseOrder[]
-  shipments       Shipment[]
-  StockMovement   StockMovement[]
-  suppliers       Supplier[]
+  owner              User                @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  products           Product[]
+  orders             ProductOrder[]
+  shippingMethods    ShippingMethod[]
+  settings           StoreSetting?
+  warehouses         Warehouse[]
+  inventories        Inventory[]
+  purchaseOrders     PurchaseOrder[]
+  shipments          Shipment[]
+  StockMovement      StockMovement[]
+  suppliers          Supplier[]
+  ThemeCustomization ThemeCustomization?
 }
 
 model StoreSetting {
@@ -457,6 +516,25 @@ model Product {
   likes         ProductLike[]
   comments      ProductComment[]
   StockMovement StockMovement[]
+}
+
+model ThemeCustomization {
+  id              String   @id @default(uuid())
+  storeId         String   @unique
+  theme           String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  fontFamily      String?
+  fontSize        String?
+  fontColor       String?
+  backgroundColor String?
+  textColor       String?
+  buttonColor     String?
+  bannerImage     String?
+  bannerText      String?
+  footerText      String?
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }
 
 model ProductReview {
