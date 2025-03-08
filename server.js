@@ -6,6 +6,8 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import { verifyToken } from './middleware/jwt.js';
+import http from "http";
+import { Server } from "socket.io";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -59,7 +61,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import gigOrderUpdateRoutes from './routes/gig/gigOrderUpdateRoutes.js';
-import gigDeliveryRoutes from './routes/gig/gigDileveryRoutes.js';  
+import gigDeliveryRoutes from './routes/gig/gigDileveryRoutes.js';
 import productRoutes from './routes/warehouse/productRoutes.js';
 import orderRoutes from './routes/warehouse/orderRoutes.js';
 import warehouseRoutes from './routes/warehouse/warehouseRoutes.js';
@@ -70,13 +72,11 @@ import variantRoutes from './routes/warehouse/variantRoutes.js';
 import shipmentRoutes from './routes/warehouse/shipmentRoutes.js';
 import productDisplayRoutes from './routes/warehouse/productDisplayRoutes.js';
 
-
 // Mount API Routes
-// If a route requires authentication, attach the verifyToken middleware before the route handler.
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/community-comments', communityCommentRoutes);
-app.use('/api/community-members',  communityMemberRoutes);
+app.use('/api/community-members', communityMemberRoutes);
 app.use('/api/community-posts', communityPostRoutes);
 app.use('/api/communities', communityRoutes);
 app.use('/api/conversations', verifyToken, conversationRoutes);
@@ -84,8 +84,8 @@ app.use('/api/follows', verifyToken, followRoutes);
 app.use('/api/gig-bookmarks', verifyToken, gigBookmarkRoutes);
 app.use('/api/gig-toggles-likes', gigLikeRoutes);
 app.use('/api/gig-orders', gigOrderRoutes);
-app.use('/api/gig-reviews',  gigReviewRoutes);
-app.use('/api/gig-stars',  gigStarsRoutes);
+app.use('/api/gig-reviews', gigReviewRoutes);
+app.use('/api/gig-stars', gigStarsRoutes);
 app.use('/api/gig-deliveries', gigDeliveryRoutes);
 app.use('/api/gig-order-updates', gigOrderUpdateRoutes);
 app.use('/api/gigs', gigRoutes);
@@ -102,6 +102,7 @@ app.use('/api/stores', storeRoutes);
 app.use('/api/variants', variantRoutes);
 app.use('/api/shipments', shipmentRoutes);
 app.use('/api/product-display', productDisplayRoutes);
+
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err);
@@ -110,8 +111,37 @@ app.use((err, req, res, next) => {
   res.status(errorStatus).json({ error: errorMessage });
 });
 
-// Start the Server
+// Create HTTP server and integrate Socket.IO
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("Socket connected:", socket.id);
+
+  socket.on("joinRoom", (conversationId) => {
+    console.log(`Socket ${socket.id} joining room ${conversationId}`);
+    socket.join(conversationId);
+  });
+
+  socket.on("newMessage", (data) => {
+    // Data: { conversationId, message }
+    console.log(`Socket ${socket.id} new message in ${data.conversationId}:`, data.message);
+    socket.to(data.conversationId).emit("messageReceived", data.message);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected:", socket.id);
+  });
+});
+
+// Start the server with Socket.IO
 const PORT = process.env.PORT || 8800;
-app.listen(PORT, async () => {
-  console.log(`Backend server is running on port ${PORT}!`);
+server.listen(PORT, () => {
+  console.log(`Backend server with Socket.IO is running on port ${PORT}!`);
 });

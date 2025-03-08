@@ -26,6 +26,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.13.0",
     "prisma": "^6.4.1",
+    "socket.io": "^4.8.1",
     "stripe": "^17.7.0",
     "uuid": "^11.1.0"
   },
