@@ -127,8 +127,8 @@ model User {
   gigReviews            GigReview[]
   gigStars              GigStar[]
   gigLikes              GigLike[]
-  conversationsAsSeller Conversation[]   @relation("SellerConversations")
-  conversationsAsBuyer  Conversation[]   @relation("BuyerConversations")
+  conversationsAsUser1 Conversation[] @relation("User1Conversations")
+  conversationsAsUser2 Conversation[] @relation("User2Conversations")
   transactions          Transaction[]
   followers             Follow[]         @relation("Followers")
   following             Follow[]         @relation("Following")
@@ -253,19 +253,19 @@ model Refund {
 }
 
 model Conversation {
-  id           String   @id @default(uuid())
-  sellerId     String
-  buyerId      String
-  readBySeller Boolean  @default(false)
-  readByBuyer  Boolean  @default(false)
-  lastMessage  String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(uuid())
+  user1Id     String
+  user2Id     String
+  readByUser1 Boolean  @default(false)
+  readByUser2 Boolean  @default(false)
+  lastMessage String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  seller   User      @relation(fields: [sellerId], references: [id], name: "SellerConversations", onDelete: Cascade)
-  buyer    User      @relation(fields: [buyerId], references: [id], name: "BuyerConversations", onDelete: Cascade)
-  messages Message[]
+  user1     User      @relation(fields: [user1Id], references: [id], name: "User1Conversations", onDelete: Cascade)
+  user2     User      @relation(fields: [user2Id], references: [id], name: "User2Conversations", onDelete: Cascade)
+  messages  Message[]
 }
 
 model Message {
