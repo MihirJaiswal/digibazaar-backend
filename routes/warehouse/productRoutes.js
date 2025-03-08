@@ -8,13 +8,14 @@ import {
   getStock,
   updateStock,
   getLowStockProducts,
+  uploadProductImage
 } from "../../controllers/warehouse/productController.js";
 import {getProductsByStoreName} from "../../controllers/warehouse/productDisplay.js";
 
 const router = express.Router();
 
 // Product routes
-router.post("/", createProduct);
+router.post("/", uploadProductImage, createProduct);
 router.get("/", getProducts);
 router.get("/:id", getProduct);
 router.put("/:id", updateProduct);

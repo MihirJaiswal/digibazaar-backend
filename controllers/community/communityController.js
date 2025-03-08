@@ -1,38 +1,79 @@
 // community.controller.js
 import { PrismaClient } from '@prisma/client';
 import createError from '../../utils/createError.js';
+import { communityUpload } from '../../config/cloudinary.config.js';
 
 const prisma = new PrismaClient();
 
+export const uploadCommunityImage = communityUpload.fields([
+  {name: 'image', maxCount: 1},
+  {name: 'coverImage', maxCount: 1}
+])
+
 // Create a new community
 export const createCommunity = async (req, res, next) => {
-  const { name, description, image, isPublic, rules, tags, coverImage, allowNSFW } = req.body;
+  console.log("=== Incoming createCommunity Request ===");
+  console.log("req.body:", req.body);
+  console.log("req.files:", req.files);
+  console.log("req.userId:", req.userId);
+
+  const { name, description, isPublic, rules, tags, allowNSFW } = req.body;
+  let imageUrl = null;
+  let coverImageUrl = null;
+
+  if (req.files) {
+    if (req.files.image && req.files.image[0]) {
+      imageUrl = req.files.image[0].path;
+      console.log("Image file path:", imageUrl);
+    }
+    if (req.files.coverImage && req.files.coverImage[0]) {
+      coverImageUrl = req.files.coverImage[0].path;
+      console.log("Cover image file path:", coverImageUrl);
+    }
+  }
+
   if (!name) {
+    console.log("Error: Community name is missing in req.body");
     return next(createError(400, 'Community name is required'));
   }
+
   if (!req.userId) {    
+    console.log("Error: Authentication failed, req.userId is missing");
     return next(createError(401, 'Authentication required'));
   }
+
+  // Convert string booleans to actual booleans
+  const isPublicBoolean = isPublic === 'true';
+  const allowNSFWBoolean = allowNSFW === 'true';
+
   try {
+    const communityData = {
+      name,
+      description,
+      image: imageUrl,
+      isPublic: isPublic !== undefined ? isPublicBoolean : true,
+      creator: { connect: { id: req.userId } },
+      rules,
+      tags,
+      coverImage: coverImageUrl,
+      allowNSFW: allowNSFW !== undefined ? allowNSFWBoolean : false
+    };
+
+    console.log("Creating community with data:", communityData);
+
     const community = await prisma.community.create({
-      data: {
-        name,
-        description,
-        image,
-        isPublic: isPublic !== undefined ? isPublic : true,
-        creator: { connect: { id: req.userId } },
-        rules,
-        tags,
-        coverImage,
-        allowNSFW
-      },
+      data: communityData,
     });
+
+    console.log("Community created successfully:", community);
     res.status(201).json(community);
   } catch (error) {
-    console.log(error);
+    console.error("Error in createCommunity:", error);
     next(createError(500, 'Failed to create community', { details: error.message }));
   }
 };
+
+
 
 
 // Get a single community by ID (including related creator, members, and posts)
@@ -73,6 +114,7 @@ export const getAllCommunities = async (req, res, next) => {
 
 // Update an existing community (only allowed by the creator)
 export const updateCommunity = async (req, res, next) => {
+  
   const { id } = req.params;
   const { name, description, image, isPublic } = req.body;
   try {

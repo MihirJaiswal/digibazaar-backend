@@ -11,12 +11,14 @@ import {
   getLikesForPost,
   getAllPosts,
   getAllPostsByUser,
+  uploadCommunityPostImage
 } from '../../controllers/community/communityPostController.js';
+import { verifyToken } from '../../middleware/jwt.js';
 
 const router = express.Router();
 
 // Create a new community post
-router.post('/', createCommunityPost);
+router.post('/', verifyToken, uploadCommunityPostImage, createCommunityPost);
 
 
 // Get all community posts for a specific community

@@ -2,12 +2,20 @@
 import { PrismaClient, CategoryEnum } from '@prisma/client';
 import createError from '../../utils/createError.js';
 import jwt from 'jsonwebtoken';
+import { gigUpload } from '../../config/cloudinary.config.js';
 
 const prisma = new PrismaClient();
 
 /**
  * Create a new gig.
  */
+
+
+export const uploadGigImage = gigUpload.fields([
+  { name: 'cover', maxCount: 1 },
+  { name: 'images', maxCount: 3 }
+]);
+
 export const createGig = async (req, res, next) => {
   try {
     // Extract and verify token
@@ -25,6 +33,22 @@ export const createGig = async (req, res, next) => {
       return next(createError(400, "Invalid category!"));
     }
 
+    // Process file uploads if available
+    let coverUrl = req.body.cover;
+    let imagesUrls = req.body.images;
+
+    if (req.files) {
+      if (req.files.cover && req.files.cover[0]) {
+        coverUrl = req.files.cover[0].path;
+        console.log("Cover file path:", coverUrl);
+      }
+      if (req.files.images) {
+        imagesUrls = req.files.images.map(file => file.path);
+        console.log("Images file paths:", imagesUrls);
+      }
+    }
+
+    // Create the new gig using values from req.body and file uploads
     const newGig = await prisma.gig.create({
       data: {
         user: { connect: { id: userId } },
@@ -32,8 +56,8 @@ export const createGig = async (req, res, next) => {
         category: req.body.categoryId, // ENUM value
         desc: req.body.desc,
         price: parseInt(req.body.price, 10),
-        cover: req.body.cover,
-        images: req.body.images,
+        cover: coverUrl,
+        images: imagesUrls,
         shortDesc: req.body.shortDesc,
         resume: req.body.resume,
         yearsOfExp: parseInt(req.body.yearsOfExp, 10),
@@ -48,6 +72,7 @@ export const createGig = async (req, res, next) => {
     next(err);
   }
 };
+
 
 /**
  * Delete a gig.

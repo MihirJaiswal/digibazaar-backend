@@ -1,16 +1,24 @@
 // communityPost.controller.js
 import { PrismaClient } from '@prisma/client';
 import createError from '../../utils/createError.js';
+import { communityPostUpload } from '../../config/cloudinary.config.js';
 
 const prisma = new PrismaClient();
+
+export const uploadCommunityPostImage = communityPostUpload.fields([
+  {name: 'image', maxCount: 1},
+  {name: 'video', maxCount: 1},
+  {name: 'audio', maxCount: 1}
+])
 
 // Create a new community post
 export const createCommunityPost = async (req, res, next) => {
   console.log("----- createCommunityPost called -----");
   console.log("Request body:", req.body);
+  console.log("Request files:", req.files);
   console.log("Request userId (from middleware):", req.userId);
 
-  const { communityId, title, content, link, image, video, audio } = req.body;
+  const { communityId, title, content, link } = req.body;
   
   if (!communityId || !title || !content) {
     console.log("Missing required fields:", { communityId, title, content });
@@ -22,7 +30,28 @@ export const createCommunityPost = async (req, res, next) => {
   if (!effectiveUserId) {
     return next(createError(401, 'Authentication required'));
   }
-  
+
+  // Initialize variables for file URLs
+  let imageUrl = "";
+  let videoUrl = "";
+  let audioUrl = "";
+
+  // Extract file URLs from req.files if present
+  if (req.files) {
+    if (req.files.image && req.files.image[0]) {
+      imageUrl = req.files.image[0].path;
+      console.log("Post image file path:", imageUrl);
+    }
+    if (req.files.video && req.files.video[0]) {
+      videoUrl = req.files.video[0].path;
+      console.log("Post video file path:", videoUrl);
+    }
+    if (req.files.audio && req.files.audio[0]) {
+      audioUrl = req.files.audio[0].path;
+      console.log("Post audio file path:", audioUrl);
+    }
+  }
+
   try {
     console.log("Attempting to create post with data:", {
       communityId,
@@ -30,9 +59,9 @@ export const createCommunityPost = async (req, res, next) => {
       title,
       content,
       link,
-      image,
-      video,
-      audio,
+      image: imageUrl,
+      video: videoUrl,
+      audio: audioUrl,
     });
     
     const newPost = await prisma.communityPost.create({
@@ -45,9 +74,9 @@ export const createCommunityPost = async (req, res, next) => {
         content,
         // Provide defaults if the optional fields are not provided.
         link: link || "",
-        image: image || "",
-        video: video || "",
-        audio: audio || "",
+        image: imageUrl,
+        video: videoUrl,
+        audio: audioUrl,
       },
     });
     
@@ -58,8 +87,6 @@ export const createCommunityPost = async (req, res, next) => {
     next(createError(500, 'Failed to create community post', { details: error.message }));
   }
 };
-
-
 
 
 // Get a single community post by its ID (with related comments and user details)

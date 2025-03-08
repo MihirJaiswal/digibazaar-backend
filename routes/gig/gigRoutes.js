@@ -1,11 +1,11 @@
 // routes/gigRoutes.js
 import express from 'express';
-import { createGig, deleteGig, getGig, getGigs, updateGig } from '../../controllers/gig/gigController.js';
+import { createGig, deleteGig, getGig, getGigs, updateGig, uploadGigImage } from '../../controllers/gig/gigController.js';
 
 const router = express.Router();
 
 // Create a new gig (only sellers can create)
-router.post('/', createGig);
+router.post('/', uploadGigImage, createGig);
 
 // Get multiple gigs with optional filters (e.g., userId, categoryId, price range, search, sort)
 router.get('/', getGigs);

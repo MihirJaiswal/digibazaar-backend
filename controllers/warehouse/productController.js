@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import createError from "../../utils/createError.js"; // Ensure the correct import path
+import { productUpload } from "../../config/cloudinary.config.js";
 
 const prisma = new PrismaClient();
 
@@ -23,13 +24,19 @@ const verifyToken = (req) => {
   }
 };
 
+export const uploadProductImage = productUpload.fields([
+  { name: 'mainImage', maxCount: 1 },
+  { name: 'images', maxCount: 3 }
+]);
+
 /**
  * Create a new product (Only store owner can create).
  */
 export const createProduct = async (req, res, next) => {
   try {
-    const user = verifyToken(req); // Authenticate user
-    const userId = user; // Get the user ID from the token
+    // Authenticate user using your verifyToken helper
+    const user = verifyToken(req); // Assuming this returns the user id or an object with id.
+    const userId = user; // Adjust as needed if verifyToken returns an object
 
     const storeId = req.body.storeId;
     if (!storeId) return next(createError(400, "Store ID is required"));
@@ -45,13 +52,28 @@ export const createProduct = async (req, res, next) => {
       return next(createError(403, "You are not authorized to add products to this store"));
     }
 
-    // Ensure tags is always an array, even if it's a string
+    // Process tags (ensure it's always an array)
     let tags = req.body.tags;
     if (tags) {
       if (typeof tags === "string") {
         tags = tags.split(",").map((s) => s.trim());
       } else if (!Array.isArray(tags)) {
-        tags = []; // If it's neither a string nor an array, set it to an empty array
+        tags = [];
+      }
+    }
+
+    // Use files uploaded via Multer if available
+    let mainImage = req.body.mainImage;
+    let images = req.body.images ? JSON.parse(req.body.images) : null;
+
+    if (req.files) {
+      if (req.files.mainImage && req.files.mainImage[0]) {
+        mainImage = req.files.mainImage[0].path;
+        console.log("Main image file path:", mainImage);
+      }
+      if (req.files.images) {
+        images = req.files.images.map((file) => file.path);
+        console.log("Images file paths:", images);
       }
     }
 
@@ -61,12 +83,12 @@ export const createProduct = async (req, res, next) => {
       description: req.body.description,
       price: parseFloat(req.body.price),
       sku: req.body.sku,
-      mainImage: req.body.mainImage,
-      images: req.body.images ? JSON.parse(req.body.images) : null,
+      mainImage,
+      images,
       stock: parseInt(req.body.stock, 10),
       weight: req.body.weight ? parseFloat(req.body.weight) : null,
       dimensions: req.body.dimensions ? JSON.parse(req.body.dimensions) : null,
-      tags: tags, // Always an array
+      tags, // Always an array
       costPerItem: req.body.costPerItem ? parseFloat(req.body.costPerItem) : null,
       profit: req.body.profit ? parseFloat(req.body.profit) : null,
       margin: req.body.margin ? parseFloat(req.body.margin) : null,
@@ -79,6 +101,7 @@ export const createProduct = async (req, res, next) => {
     next(err);
   }
 };
+
 
 
 /**

@@ -7,14 +7,15 @@ import {
   updateCommunity, 
   deleteCommunity,
   getAllCommunitiesByUser,
-  getAllCommunitiesJoinedByUser
+  getAllCommunitiesJoinedByUser,
+  uploadCommunityImage
 } from '../../controllers/community/communityController.js';
 import { verifyToken } from '../../middleware/jwt.js';
 
 const router = express.Router();
 
 // Create a new community
-router.post('/', verifyToken, createCommunity);
+router.post('/', verifyToken, uploadCommunityImage, createCommunity);
 
 // Get all communities (with related creator, members, and posts)
 router.get('/', getAllCommunities);

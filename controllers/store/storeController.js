@@ -1,15 +1,21 @@
 import { PrismaClient } from "@prisma/client";
 import createError from "../../utils/createError.js";
 import jwt from "jsonwebtoken";
+import { storeUpload } from "../../config/cloudinary.config.js";
 
 const prisma = new PrismaClient();
 
 /**
  * Create a new store.
  */
+export const uploadStoreImage = storeUpload.fields([
+  { name: 'logo', maxCount: 1 }
+]);
+
 export const createStore = async (req, res, next) => {
   try {
     console.log("createStore called with body:", req.body);
+
     // Extract and verify token
     const token = req.headers.authorization?.split(" ")[1];
     console.log("Token extracted:", token);
@@ -34,6 +40,17 @@ export const createStore = async (req, res, next) => {
       return next(createError(400, "User already owns a store!"));
     }
 
+    // Use uploaded logo if available; otherwise, fall back to req.body.logo
+    let logo = req.body.logo || "";
+    if (req.files && req.files.logo && req.files.logo[0]) {
+      logo = req.files.logo[0].path;
+      console.log("Logo file path:", logo);
+    }
+
+    // Convert enableBlog and enableProductReviews to booleans
+    const enableBlog = req.body.enableBlog === 'true';
+    const enableProductReviews = req.body.enableProductReviews === 'true';
+
     // Create store
     const newStore = await prisma.store.create({
       data: {
@@ -42,12 +59,12 @@ export const createStore = async (req, res, next) => {
         description: req.body.description || "",
         category: req.body.category || "OTHER",
         language: req.body.language || "EN",
-        currency: req.body.currency || "USD",
+        currency: req.body.currency || "INR",
         timezone: req.body.timezone || "UTC",
-        enableBlog: req.body.enableBlog || false,
-        enableProductReviews: req.body.enableProductReviews || false,
+        enableBlog, // now a boolean
+        enableProductReviews, // now a boolean
         theme: req.body.theme || "default",
-        logo: req.body.logo || "",
+        logo, // Updated to use file upload if available
         domain: req.body.domain || null, // Optional custom domain
         subdomain:
           req.body.subdomain ||

@@ -1,11 +1,11 @@
 import express from "express";
-import { createStore, getStore, getAllStores, updateStore, deleteStore, getStoreByName } from "../../controllers/store/storeController.js";
-import { getThemeCustomization, createThemeCustomization, updateThemeCustomization, deleteThemeCustomization, getThemeCustomizationByStoreName } from "../../controllers/store/themeCustomizationController.js";
+import { createStore, getStore, getAllStores, updateStore, deleteStore, getStoreByName, uploadStoreImage } from "../../controllers/store/storeController.js";
+import { getThemeCustomization, createThemeCustomization, updateThemeCustomization, deleteThemeCustomization, getThemeCustomizationByStoreName, uploadThemeCustomizationImage } from "../../controllers/store/themeCustomizationController.js";
 
 const router = express.Router();
 
 // Create Store Route
-router.post("/", createStore);
+router.post("/", uploadStoreImage, createStore);
 
 // Get Store Route
 router.get("/", getStore);
@@ -24,8 +24,8 @@ router.get("/:name", getStoreByName);
 
 // Theme Customization Routes
 router.get("/theme-customization", getThemeCustomization);
-router.post("/theme-customization", createThemeCustomization);
-router.put("/theme-customization", updateThemeCustomization);
+router.post("/theme-customization", uploadThemeCustomizationImage, createThemeCustomization);
+router.put("/theme-customization", uploadThemeCustomizationImage, updateThemeCustomization);
 router.delete("/theme-customization", deleteThemeCustomization);
 
 // Get Theme Customization by Store Name Route

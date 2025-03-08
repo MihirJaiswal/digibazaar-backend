@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import createError from "../../utils/createError.js";
+import { themeCustomizationUpload } from "../../config/cloudinary.config.js";
 
 const prisma = new PrismaClient();
 
@@ -87,6 +88,11 @@ export const getThemeCustomization = async (req, res) => {
 };
 
 
+
+export const uploadThemeCustomizationImage = themeCustomizationUpload.fields([
+  {name: 'bannerImage', maxCount: 1},
+  {name: 'footerImage', maxCount: 1}
+])
   
 
 /**
@@ -94,6 +100,7 @@ export const getThemeCustomization = async (req, res) => {
  * POST /api/theme-customizations
  */
 export const createThemeCustomization = async (req, res) => {
+  // Extract fields from req.body
   const {
     storeId,
     theme,
@@ -103,10 +110,25 @@ export const createThemeCustomization = async (req, res) => {
     backgroundColor,
     textColor,
     buttonColor,
-    bannerImage,
     bannerText,
     footerText,
   } = req.body;
+
+  // Initialize images from req.body or empty string
+  let bannerImage = req.body.bannerImage || "";
+  let footerImage = req.body.footerImage || "";
+
+  // If files are uploaded via middleware, use their Cloudinary URLs
+  if (req.files) {
+    if (req.files.bannerImage && req.files.bannerImage[0]) {
+      bannerImage = req.files.bannerImage[0].path;
+      console.log("Banner image uploaded:", bannerImage);
+    }
+    if (req.files.footerImage && req.files.footerImage[0]) {
+      footerImage = req.files.footerImage[0].path;
+      console.log("Footer image uploaded:", footerImage);
+    }
+  }
 
   try {
     const newCustomization = await prisma.themeCustomization.create({
@@ -127,54 +149,72 @@ export const createThemeCustomization = async (req, res) => {
 
     res.status(201).json(newCustomization);
   } catch (error) {
-    console.error('Error creating theme customization:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error creating theme customization:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 /**
  * Update the theme customization for a given store.
  * PUT /api/theme-customizations/:storeId
  */
 export const updateThemeCustomization = async (req, res) => {
-    console.log("Request headers:", req.headers);
-    console.log("Request body:", req.body);
-  
-    // Verify token and extract user information.
-    const user = verifyToken(req); 
-    const userId = user.id || user; // Adjust according to your verifyToken return
-  
-    console.log("User ID from token:", userId);
-  
-    try {
-      // Fetch the store associated with this user
-      const store = await prisma.store.findUnique({
-        where: { ownerId: userId },
-      });
-  
-      if (!store) {
-        console.error("Store not found for user:", userId);
-        return res.status(404).json({ message: "Store not found for this user" });
-      }
-  
-      console.log("Store found:", store);
-  
-      // Use the store's id for the update
-      const updateData = req.body;
-      console.log("Update data:", updateData);
-  
-      const updatedCustomization = await prisma.themeCustomization.update({
-        where: { storeId: store.id },
-        data: updateData,
-      });
-  
-      console.log("Updated customization:", updatedCustomization);
-      res.status(200).json(updatedCustomization);
-    } catch (error) {
-      console.error("Error updating theme customization:", error);
-      res.status(500).json({ message: "Internal server error" });
+  console.log("Request headers:", req.headers);
+  console.log("Request body:", req.body);
+
+  // Verify token and extract user information.
+  const user = verifyToken(req);
+  const userId = user.id || user; // Adjust if needed
+
+  console.log("User ID from token:", userId);
+
+  try {
+    // Fetch the store associated with this user
+    const store = await prisma.store.findUnique({
+      where: { ownerId: userId },
+    });
+
+    if (!store) {
+      console.error("Store not found for user:", userId);
+      return res.status(404).json({ message: "Store not found for this user" });
     }
-  };
+
+    console.log("Store found:", store);
+
+    // Start with updateData from the request body
+    let updateData = { ...req.body };
+
+    // If files are uploaded, override the image fields
+    if (req.files) {
+      if (req.files.bannerImage && req.files.bannerImage[0]) {
+        updateData.bannerImage = req.files.bannerImage[0].path;
+        console.log("Updated banner image:", updateData.bannerImage);
+      }
+      if (req.files.footerImage && req.files.footerImage[0]) {
+        updateData.footerImage = req.files.footerImage[0].path;
+        console.log("Updated footer image:", updateData.footerImage);
+      }
+    }
+
+    console.log("Update data:", updateData);
+
+    // Use upsert: update if exists; create if it doesn't.
+    const updatedCustomization = await prisma.themeCustomization.upsert({
+      where: { storeId: store.id },
+      update: updateData,
+      create: { storeId: store.id, ...updateData },
+    });
+
+    console.log("Updated customization:", updatedCustomization);
+    res.status(200).json(updatedCustomization);
+  } catch (error) {
+    console.error("Error updating theme customization:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
   
   
 
