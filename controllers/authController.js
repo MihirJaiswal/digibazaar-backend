@@ -15,7 +15,7 @@ export const register = async (req, res, next) => {
   try {
     // Process file upload for profile picture if available.
     let profilePic = req.body.profilePic || "";
-    if (req.files && req.files.profilePicture && req.files.profilePic[0]) {
+    if (req.files && req.files.profilePic && req.files.profilePic[0]) {
       profilePic = req.files.profilePic[0].path;
       console.log("Profile picture uploaded:", profilePic);
     }
@@ -26,28 +26,25 @@ export const register = async (req, res, next) => {
     // Hash the password
     const hash = bcrypt.hashSync(req.body.password, 5);
 
-    // Create the new user, overriding profilePicture if a file was uploaded.
+    // Create the new user, overriding profilePic if a file was uploaded.
     const newUser = await prisma.user.create({
       data: {
         ...req.body,
         isSeller, // now a boolean
-        profilePic, // Use the file upload URL if available
+        profilePic, // file upload URL if available
         password: hash,
       },
     });
 
     // Generate token similar to login
     const token = jwt.sign(
-      {
-        id: newUser.id,
-        isSeller: newUser.isSeller,
-      },
+      { id: newUser.id, isSeller: newUser.isSeller },
       process.env.JWT_KEY,
       { expiresIn: "7d" }
     );
 
     // Exclude password from response
-    const { password, ...info } = newUser;
+    const { password, ...userInfo } = newUser;
 
     res
       .cookie("accessToken", token, {
@@ -56,22 +53,49 @@ export const register = async (req, res, next) => {
         sameSite: "strict",
       })
       .status(201)
-      .json({
-        token,
-        user: info,
-      });
+      .json({ token, user: userInfo });
   } catch (err) {
-    if (err.code === 'P2002') {
-      return next(createError(400, "Username already exists!"));
-    } else if (err.code === 'P2003') {
-      return next(createError(400, "Email already exists!"));
-    } else if (err.code === 'P2004') {
-      return next(createError(400, "Phone number already exists!"));
+    // Log the complete error for debugging purposes
+    console.error("Register error:", err);
+    console.error("Error code:", err.code);
+    console.error("Error meta:", err.meta);
+    console.error("Error message:", err.message);
+
+    // Check for Prisma unique constraint errors
+    if (err.code === "P2002" || (err.message && err.message.includes("Unique constraint failed"))) {
+      // Try to extract the problematic field from err.meta.target first
+      if (err.meta && err.meta.target) {
+        const targets = err.meta.target;
+        if (targets.includes("User_email_key")) {
+          return next(createError(400, "Email already exists!"));
+        }
+        if (targets.includes("User_username_key")) {
+          return next(createError(400, "Username already exists!"));
+        }
+        if (targets.includes("User_phone_key")) {
+          return next(createError(400, "Phone number already exists!"));
+        }
+      }
+      // Fallback: parse the error message for field clues
+      const match = err.message.match(/\(([^)]+)\)/);
+      if (match && match[1]) {
+        const field = match[1];
+        if (field.includes("email")) {
+          return next(createError(400, "Email already exists!"));
+        }
+        if (field.includes("username")) {
+          return next(createError(400, "Username already exists!"));
+        }
+        if (field.includes("phone")) {
+          return next(createError(400, "Phone number already exists!"));
+        }
+      }
+      return next(createError(400, "Unique constraint violation"));
     }
-    next(err);
+    // Fallback: send the error message if available, or a generic one.
+    return next(createError(500, err.message || "Something went wrong"));
   }
 };
-
 
 
 export const login = async (req, res, next) => {
