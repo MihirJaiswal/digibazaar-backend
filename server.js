@@ -129,16 +129,59 @@ io.on("connection", (socket) => {
     socket.join(conversationId);
   });
 
-  socket.on("newMessage", (data) => {
-    // Data: { conversationId, message }
-    console.log(`Socket ${socket.id} new message in ${data.conversationId}:`, data.message);
-    socket.to(data.conversationId).emit("messageReceived", data.message);
+  socket.on("newMessage", async (data) => {
+    // Expected data: { conversationId, message }
+    // where message is an object: { id, senderId, content, createdAt, status }
+    console.log(
+      `Socket ${socket.id} new message in ${data.conversationId}:`,
+      data.message
+    );
+
+    try {
+      const { conversationId, message } = data;
+      
+      // Save only the relevant parts to the database
+      const newMessage = await prisma.message.create({
+        data: {
+          conversationId,
+          userId: message.senderId, // use the senderId from the message object
+          content: message.content, // store only the text content
+        },
+      });
+
+      // Update conversation details like lastMessage and read flags
+      const conversation = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+      });
+
+      if (conversation) {
+        let updateData = { lastMessage: message.content };
+        if (conversation.user1Id === message.senderId) {
+          updateData.readByUser1 = true;
+          updateData.readByUser2 = false;
+        } else if (conversation.user2Id === message.senderId) {
+          updateData.readByUser2 = true;
+          updateData.readByUser1 = false;
+        }
+        await prisma.conversation.update({
+          where: { id: conversationId },
+          data: updateData,
+        });
+      }
+
+      // Broadcast the saved message to other clients in the same conversation room
+      socket.to(conversationId).emit("messageReceived", newMessage);
+    } catch (err) {
+      console.error("Error storing message:", err);
+      socket.emit("error", "Error storing message in database");
+    }
   });
 
   socket.on("disconnect", () => {
     console.log("Socket disconnected:", socket.id);
   });
 });
+
 
 // Start the server with Socket.IO
 const PORT = process.env.PORT || 8800;
