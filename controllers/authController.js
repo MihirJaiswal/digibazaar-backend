@@ -147,3 +147,4 @@ export const logout = async (req, res) => {
     .status(200)
     .send('User has been logged out.');
 };
+
