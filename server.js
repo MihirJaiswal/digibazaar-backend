@@ -1,3 +1,4 @@
+// server.js
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -6,8 +7,8 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import { verifyToken } from './middleware/jwt.js';
-import http from "http";
-import { Server } from "socket.io";
+import http from 'http';
+import { Server } from 'socket.io';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -16,8 +17,8 @@ const prisma = new PrismaClient();
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   })
 );
@@ -27,12 +28,12 @@ app.use(cookieParser());
 
 // Logging Middleware for all incoming requests
 app.use((req, res, next) => {
-  console.log("🔹 Received Request:");
-  console.log("➡️ Method:", req.method);
-  console.log("➡️ Path:", req.path);
-  console.log("➡️ Headers:", req.headers);
-  console.log("➡️ Cookies:", req.cookies);
-  console.log("➡️ Body:", req.body);
+  console.log('🔹 Received Request:');
+  console.log('➡️ Method:', req.method);
+  console.log('➡️ Path:', req.path);
+  console.log('➡️ Headers:', req.headers);
+  console.log('➡️ Cookies:', req.cookies);
+  console.log('➡️ Body:', req.body);
   next();
 });
 
@@ -105,7 +106,7 @@ app.use('/api/product-display', productDisplayRoutes);
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
-  console.error("❌ Error:", err);
+  console.error('❌ Error:', err);
   const errorStatus = err.status || 500;
   const errorMessage = err.message || 'Something went wrong!';
   res.status(errorStatus).json({ error: errorMessage });
@@ -116,22 +117,22 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    methods: ["GET", "POST"],
+    methods: ['GET', 'POST'],
     credentials: true,
   },
 });
 
-io.on("connection", (socket) => {
-  console.log("Socket connected:", socket.id);
+io.on('connection', (socket) => {
+  console.log('Socket connected:', socket.id);
 
-  socket.on("joinRoom", (conversationId) => {
+  socket.on('joinRoom', (conversationId) => {
     console.log(`Socket ${socket.id} joining room ${conversationId}`);
     socket.join(conversationId);
   });
 
-  socket.on("newMessage", async (data) => {
+  socket.on('newMessage', async (data) => {
     // Expected data: { conversationId, message }
-    // where message is an object: { id, senderId, content, createdAt, status }
+    // where message is an object: { id, userId, content, createdAt, status }
     console.log(
       `Socket ${socket.id} new message in ${data.conversationId}:`,
       data.message
@@ -144,8 +145,8 @@ io.on("connection", (socket) => {
       const newMessage = await prisma.message.create({
         data: {
           conversationId,
-          userId: message.senderId, // use the senderId from the message object
-          content: message.content, // store only the text content
+          userId: message.userId,
+          content: message.content,
         },
       });
 
@@ -156,10 +157,10 @@ io.on("connection", (socket) => {
 
       if (conversation) {
         let updateData = { lastMessage: message.content };
-        if (conversation.user1Id === message.senderId) {
+        if (conversation.user1Id === message.userId) {
           updateData.readByUser1 = true;
           updateData.readByUser2 = false;
-        } else if (conversation.user2Id === message.senderId) {
+        } else if (conversation.user2Id === message.userId) {
           updateData.readByUser2 = true;
           updateData.readByUser1 = false;
         }
@@ -170,18 +171,17 @@ io.on("connection", (socket) => {
       }
 
       // Broadcast the saved message to other clients in the same conversation room
-      socket.to(conversationId).emit("messageReceived", newMessage);
+      socket.to(conversationId).emit('messageReceived', newMessage);
     } catch (err) {
-      console.error("Error storing message:", err);
-      socket.emit("error", "Error storing message in database");
+      console.error('Error storing message:', err);
+      socket.emit('error', 'Error storing message in database');
     }
   });
 
-  socket.on("disconnect", () => {
-    console.log("Socket disconnected:", socket.id);
+  socket.on('disconnect', () => {
+    console.log('Socket disconnected:', socket.id);
   });
 });
-
 
 // Start the server with Socket.IO
 const PORT = process.env.PORT || 8800;

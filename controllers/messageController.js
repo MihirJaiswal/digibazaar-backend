@@ -23,7 +23,8 @@ export const createMessage = async (req, res, next) => {
       where: { id: conversationId },
     });
 
-    if (!conversation) return next(createError(404, 'Conversation not found'));
+    if (!conversation)
+      return next(createError(404, 'Conversation not found'));
 
     let updateData = { lastMessage: content };
     // Determine which user flag to update

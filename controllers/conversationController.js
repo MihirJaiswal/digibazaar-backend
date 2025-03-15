@@ -22,7 +22,6 @@ export const createConversation = async (req, res, next) => {
         // Update read flags based on the current user initiating the request.
         readByUser1: currentUserId === user1,
         readByUser2: currentUserId === user2,
-        // You can also update other fields if needed.
       },
       create: {
         id: conversationId,
@@ -38,7 +37,6 @@ export const createConversation = async (req, res, next) => {
     next(err);
   }
 };
-
 
 export const updateConversation = async (req, res, next) => {
   try {
@@ -75,7 +73,8 @@ export const getSingleConversation = async (req, res, next) => {
       where: { id: req.params.id },
     });
 
-    if (!conversation) return next(createError(404, 'Conversation not found!'));
+    if (!conversation)
+      return next(createError(404, 'Conversation not found!'));
     res.status(200).send(conversation);
   } catch (err) {
     next(err);
@@ -87,10 +86,7 @@ export const getConversations = async (req, res, next) => {
     // Fetch conversations where the current user is either user1 or user2
     const conversations = await prisma.conversation.findMany({
       where: {
-        OR: [
-          { user1Id: req.userId },
-          { user2Id: req.userId },
-        ],
+        OR: [{ user1Id: req.userId }, { user2Id: req.userId }],
       },
       orderBy: { updatedAt: 'desc' },
     });
