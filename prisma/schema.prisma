@@ -18,6 +18,13 @@ enum OrderStatus {
   ACCEPTED
 }
 
+enum InquiryStatus {
+  PENDING
+  NEGOTIATING
+  ACCEPTED
+  REJECTED
+}
+
 enum PaymentStatus {
   PENDING
   COMPLETED
@@ -121,22 +128,22 @@ model User {
   isSeller      Boolean  @default(false)
 
   // Marketplace & Project Relations
-  gigs                  Gig[]
-  gigOrders             GigOrder[]       @relation("GigBuyerOrders")
-  messages              Message[]
-  gigReviews            GigReview[]
-  gigStars              GigStar[]
-  gigLikes              GigLike[]
-  conversationsAsUser1 Conversation[] @relation("User1Conversations")
-  conversationsAsUser2 Conversation[] @relation("User2Conversations")
-  transactions          Transaction[]
-  followers             Follow[]         @relation("Followers")
-  following             Follow[]         @relation("Following")
-  notifications         Notification[]
-  orderUpdates          GigOrderUpdate[]
-  refunds               Refund[]
-  deliveriesAsSeller    GigDelivery[]    @relation("DeliverySeller")
-  deliveriesAsBuyer     GigDelivery[]    @relation("DeliveryBuyer")
+  gigs                 Gig[]
+  gigOrders            GigOrder[]       @relation("GigBuyerOrders")
+  messages             Message[]
+  gigReviews           GigReview[]
+  gigStars             GigStar[]
+  gigLikes             GigLike[]
+  conversationsAsUser1 Conversation[]   @relation("User1Conversations")
+  conversationsAsUser2 Conversation[]   @relation("User2Conversations")
+  transactions         Transaction[]
+  followers            Follow[]         @relation("Followers")
+  following            Follow[]         @relation("Following")
+  notifications        Notification[]
+  orderUpdates         GigOrderUpdate[]
+  refunds              Refund[]
+  deliveriesAsSeller   GigDelivery[]    @relation("DeliverySeller")
+  deliveriesAsBuyer    GigDelivery[]    @relation("DeliveryBuyer")
 
   // Community Relations
   communitiesCreated   Community[]        @relation("CreatorCommunities")
@@ -146,33 +153,34 @@ model User {
   GigOrder             GigOrder[]
   Store                Store?
   ProductOrder         ProductOrder[]
+  inquiriesAsBuyer     SupplierInquiry[]  @relation("InquiryBuyer")
+  inquiriesAsSupplier  SupplierInquiry[]  @relation("InquirySupplier")
 }
 
 model Gig {
-  id             String       @id @default(uuid())
+  id             String        @id @default(uuid())
   userId         String
-  category       CategoryEnum
+  category       StoreCategory // Changed to StoreCategory (more relevant for products)
   title          String
-  desc           String
-  price          Int
+  description    String
+  bulkPrice      Float // Price per unit in bulk
   cover          String
   images         Json
-  shortDesc      String
-  deliveryTime   Int
-  revisionNumber Int
-  resume         String?
-  yearsOfExp     Int
-  features       Json
-  sales          Int          @default(0)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  minOrderQty    Int // Minimum Order Quantity
+  leadTime       Int // Estimated fulfillment time (in days)
+  available      Boolean       @default(true) // Product availability
+  supplyCapacity Int? // Maximum production/supply capacity per month
+  features       Json // e.g., available colors, sizes
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   // Relations
-  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders  GigOrder[]
-  reviews GigReview[]
-  likes   GigLike[]
-  stars   GigStar[]
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders          GigOrder[]
+  reviews         GigReview[]
+  likes           GigLike[]
+  stars           GigStar[]
+  SupplierInquiry SupplierInquiry[]
 }
 
 model GigStar {
@@ -192,11 +200,15 @@ model GigOrder {
   gigId         String
   buyerId       String
   sellerId      String
-  price         Int
+  finalQuantity Int         // New field for the final agreed-upon quantity
+  finalPrice    Float       // New field for the final agreed-upon price per unit
+  totalPrice    Int         // Alternatively, you can store total price as finalQuantity * finalPrice
   status        OrderStatus @default(PENDING)
-  //for adding specific requirement
   requirement   String
   paymentIntent String
+  shippingAddress String?   // If needed for physical products
+  trackingNumber String?    // For shipment tracking
+  deliveryMethod String?    // e.g., courier, postal, etc.
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -239,6 +251,29 @@ model GigDelivery {
   buyer    User     @relation(name: "DeliveryBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
 }
 
+model SupplierInquiry {
+  id                String        @id @default(uuid())
+  gigId             String
+  buyerId           String
+  supplierId        String
+  requestedQuantity Int
+  proposedQuantity  Int? // Supplier counter-offer
+  requestedPrice    Float? // Buyer’s expected price per unit
+  proposedPrice     Float? // Supplier’s counter-offer price
+  finalQuantity     Int?
+  finalPrice        Float?
+  message           String? // Initial inquiry message or subsequent notes
+  status            InquiryStatus @default(PENDING)
+  round             Int           @default(1) // Optional: negotiation round
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  gig      Gig  @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  buyer    User @relation("InquiryBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  supplier User @relation("InquirySupplier", fields: [supplierId], references: [id], onDelete: Cascade)
+}
+
 model Refund {
   id         String   @id @default(uuid())
   gigOrderId String
@@ -263,9 +298,9 @@ model Conversation {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  user1     User      @relation(fields: [user1Id], references: [id], name: "User1Conversations", onDelete: Cascade)
-  user2     User      @relation(fields: [user2Id], references: [id], name: "User2Conversations", onDelete: Cascade)
-  messages  Message[]
+  user1    User      @relation(fields: [user1Id], references: [id], name: "User1Conversations", onDelete: Cascade)
+  user2    User      @relation(fields: [user2Id], references: [id], name: "User2Conversations", onDelete: Cascade)
+  messages Message[]
 }
 
 model Message {

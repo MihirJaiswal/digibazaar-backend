@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, OrderStatus } from '@prisma/client';
 import createError from '../../utils/createError.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
@@ -28,13 +28,22 @@ const verifyToken = (req) => {
 // ✅ 1️⃣ Create a Payment Intent (Frontend Calls This)
 export const createPaymentIntent = async (req, res, next) => {
   try {
+    console.log("[Create PaymentIntent] Request body:", req.body);
     const buyerId = verifyToken(req);
-    const { gigId } = req.body;
+    console.log("[Create PaymentIntent] Buyer ID:", buyerId);
 
+    const { gigId } = req.body;
+    if (!gigId) {
+      console.error("[Create PaymentIntent] Gig ID missing in request body");
+      return next(createError(400, "Missing Gig ID"));
+    }
+
+    // Fetch gig details using the new schema (use bulkPrice)
     const gig = await prisma.gig.findUnique({ where: { id: gigId } });
+    console.log("[Create PaymentIntent] Gig fetched:", gig);
     if (!gig) return next(createError(404, "Gig not found"));
 
-    // ✅ Create a customer with a valid Indian address
+    // Create a customer with a valid Indian address (dummy address)
     const customer = await stripe.customers.create({
       name: req.user?.name || "Test User",
       email: req.user?.email || "test@example.com",
@@ -46,17 +55,30 @@ export const createPaymentIntent = async (req, res, next) => {
         country: "IN",
       },
     });
+    console.log("[Create PaymentIntent] Customer created:", customer);
 
-    // ✅ Change currency to INR & pass required fields
+    // Calculate the amount in paisa (₹1 = 100 paisa) using gig.bulkPrice
+    const amount = Math.round(gig.bulkPrice * 100);
+    console.log("[Create PaymentIntent] Calculated amount (in paisa):", amount);
+    if (isNaN(amount) || amount <= 0) {
+      console.error("[Create PaymentIntent] Invalid amount:", amount);
+      return next(createError(400, "Invalid amount calculated"));
+    }
+
+    // Create payment intent with Stripe
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: gig.price * 100,  // Convert to paisa (₹1 = 100 paisa)
+      amount: amount,
       currency: "inr",
       customer: customer.id,
       description: `Payment for gig: ${gig.title}`,
       payment_method_types: ["card"],
     });
+    console.log("[Create PaymentIntent] Payment Intent created:", paymentIntent);
 
-    res.status(200).json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
+    res.status(200).json({
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+    });
   } catch (error) {
     console.error("❌ Error in createPaymentIntent:", error);
     next(error);
@@ -67,38 +89,73 @@ export const createPaymentIntent = async (req, res, next) => {
 // ✅ 2️⃣ Confirm Payment & Create Order (Frontend Calls This After Payment)
 export const createGigOrder = async (req, res, next) => {
   try {
-    const buyerId = verifyToken(req); // ✅ Extracts buyerId from token
-    const { gigId, paymentIntentId, requirement } = req.body;
+    console.log("[Create Order] Request body:", req.body);
+    const buyerId = verifyToken(req);
+    console.log("[Create Order] Buyer ID:", buyerId);
+    const { gigId, inquiryId, paymentIntentId, requirement, shippingAddress, deliveryMethod } = req.body;
 
-    if (!gigId || !paymentIntentId || !requirement) {
-      console.error("❌ Missing required fields:", req.body);
+    if (!gigId || !inquiryId || !paymentIntentId || !requirement) {
+      console.error("[Create Order] Missing required fields:", req.body);
       return next(createError(400, "Missing required fields"));
     }
 
-    // ✅ Fetch gig details to get sellerId & price
+    // Fetch gig details to get sellerId and pricing info
     const gig = await prisma.gig.findUnique({ where: { id: gigId } });
-    if (!gig) return next(createError(404, "Gig not found"));
+    console.log("[Create Order] Gig fetched:", gig);
+    if (!gig) {
+      console.error("[Create Order] Gig not found with ID:", gigId);
+      return next(createError(404, "Gig not found"));
+    }
 
-    // ✅ Ensure payment was successful
+    // Fetch inquiry details to retrieve final negotiated values
+    const inquiry = await prisma.supplierInquiry.findUnique({
+      where: { id: inquiryId },
+    });
+    console.log("[Create Order] Inquiry fetched:", inquiry);
+    if (!inquiry) {
+      console.error("[Create Order] Inquiry not found with ID:", inquiryId);
+      return next(createError(404, "Inquiry not found"));
+    }
+
+    // Ensure final negotiation details are set
+    if (inquiry.finalQuantity == null || inquiry.finalPrice == null) {
+      console.error("[Create Order] Final negotiation details are missing:", {
+        finalQuantity: inquiry.finalQuantity,
+        finalPrice: inquiry.finalPrice,
+      });
+      return next(createError(400, "Final negotiation details not set"));
+    }
+
+    // Retrieve and verify the payment intent from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    console.log("[Create Order] Payment Intent retrieved:", paymentIntent);
     if (paymentIntent.status !== "succeeded") {
+      console.error("[Create Order] Payment not completed. Status:", paymentIntent.status);
       return next(createError(400, "Payment not completed"));
     }
 
-    // ✅ Create order in database
+    // Calculate total price using final negotiated values
+    const totalPrice = inquiry.finalQuantity * inquiry.finalPrice;
+    console.log("[Create Order] Calculated total price:", totalPrice);
+
+    // Create gig order with shipping and delivery details
     const newGigOrder = await prisma.gigOrder.create({
       data: {
         gigId,
         buyerId,
-        sellerId: gig.userId,  // Get seller from gig details
-        price: gig.price,       // Get price from gig details
+        sellerId: gig.userId, // Seller from gig details
+        finalQuantity: inquiry.finalQuantity,
+        finalPrice: inquiry.finalPrice,
+        totalPrice: totalPrice,
         paymentIntent: paymentIntentId,
         requirement,
-        status: "PENDING",
+        shippingAddress: shippingAddress || null,
+        deliveryMethod: deliveryMethod || null,
+        status: OrderStatus.PENDING,
       },
     });
 
-    console.log("✅ Gig Order Created:", newGigOrder);
+    console.log("[Create Order] Gig Order created:", newGigOrder);
     res.status(201).json(newGigOrder);
   } catch (error) {
     console.error("❌ Error in createGigOrder:", error);

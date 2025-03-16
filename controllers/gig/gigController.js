@@ -1,5 +1,5 @@
 // gig.controller.js
-import { PrismaClient, CategoryEnum } from '@prisma/client';
+import { PrismaClient, StoreCategory } from '@prisma/client';
 import createError from '../../utils/createError.js';
 import jwt from 'jsonwebtoken';
 import { gigUpload } from '../../config/cloudinary.config.js';
@@ -7,10 +7,8 @@ import { gigUpload } from '../../config/cloudinary.config.js';
 const prisma = new PrismaClient();
 
 /**
- * Create a new gig.
+ * Create a new gig (Supplier Listing).
  */
-
-
 export const uploadGigImage = gigUpload.fields([
   { name: 'cover', maxCount: 1 },
   { name: 'images', maxCount: 3 }
@@ -27,8 +25,8 @@ export const createGig = async (req, res, next) => {
     const isSeller = decoded.isSeller;
     if (!isSeller) return next(createError(403, "Only sellers can create a gig!"));
 
-    // Validate category
-    const validCategories = Object.values(CategoryEnum);
+    // Validate category against new StoreCategory enum
+    const validCategories = Object.values(StoreCategory);
     if (!validCategories.includes(req.body.categoryId)) {
       return next(createError(400, "Invalid category!"));
     }
@@ -36,7 +34,6 @@ export const createGig = async (req, res, next) => {
     // Process file uploads if available
     let coverUrl = req.body.cover;
     let imagesUrls = req.body.images;
-
     if (req.files) {
       if (req.files.cover && req.files.cover[0]) {
         coverUrl = req.files.cover[0].path;
@@ -48,22 +45,20 @@ export const createGig = async (req, res, next) => {
       }
     }
 
-    // Create the new gig using values from req.body and file uploads
+    // Create the new gig (supplier listing) using updated fields
     const newGig = await prisma.gig.create({
       data: {
         user: { connect: { id: userId } },
         title: req.body.title,
-        category: req.body.categoryId, // ENUM value
-        desc: req.body.desc,
-        price: parseInt(req.body.price, 10),
+        category: req.body.categoryId, // Must be a valid StoreCategory value
+        description: req.body.description,  // Full product description
+        bulkPrice: parseFloat(req.body.bulkPrice),  // Price per unit for bulk orders
         cover: coverUrl,
         images: imagesUrls,
-        shortDesc: req.body.shortDesc,
-        resume: req.body.resume,
-        yearsOfExp: parseInt(req.body.yearsOfExp, 10),
-        deliveryTime: parseInt(req.body.deliveryTime, 10),
-        revisionNumber: parseInt(req.body.revisionNumber, 10),
-        features: req.body.features,
+        minOrderQty: parseInt(req.body.minOrderQty, 10), // Minimum Order Quantity
+        leadTime: parseInt(req.body.leadTime, 10),  // Fulfillment time in days
+        supplyCapacity: req.body.supplyCapacity ? parseInt(req.body.supplyCapacity, 10) : null,  // Optional field
+        features: req.body.features, // e.g., available colors, sizes
       },
     });
 
@@ -73,14 +68,11 @@ export const createGig = async (req, res, next) => {
   }
 };
 
-
 /**
  * Delete a gig.
- * This controller now follows the same token extraction and seller validation as createGig.
  */
 export const deleteGig = async (req, res, next) => {
   try {
-    // Extract and verify token
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return next(createError(401, "Unauthorized! Token missing"));
 
@@ -89,7 +81,6 @@ export const deleteGig = async (req, res, next) => {
     const isSeller = decoded.isSeller;
     if (!isSeller) return next(createError(403, "Only sellers can delete a gig!"));
 
-    // Find the gig by id
     const gig = await prisma.gig.findUnique({
       where: { id: req.params.id },
     });
@@ -107,11 +98,9 @@ export const deleteGig = async (req, res, next) => {
 
 /**
  * Update an existing gig.
- * Only sellers can update their own gigs.
  */
 export const updateGig = async (req, res, next) => {
   try {
-    // Extract and verify token
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return next(createError(401, "Unauthorized! Token missing"));
 
@@ -120,7 +109,6 @@ export const updateGig = async (req, res, next) => {
     const isSeller = decoded.isSeller;
     if (!isSeller) return next(createError(403, "Only sellers can update a gig!"));
 
-    // Find the gig to update
     const gig = await prisma.gig.findUnique({
       where: { id: req.params.id },
     });
@@ -132,25 +120,23 @@ export const updateGig = async (req, res, next) => {
     // If category is provided, validate it
     const { categoryId } = req.body;
     if (categoryId) {
-      const validCategories = Object.values(CategoryEnum);
+      const validCategories = Object.values(StoreCategory);
       if (!validCategories.includes(categoryId)) {
         return next(createError(400, "Invalid category!"));
       }
     }
 
-    // Build the update data; if a field is not provided, keep the current value
+    // Build the update data using new supplier listing fields
     const updatedData = {
       title: req.body.title !== undefined ? req.body.title : gig.title,
       category: req.body.categoryId !== undefined ? req.body.categoryId : gig.category,
-      desc: req.body.desc !== undefined ? req.body.desc : gig.desc,
-      price: req.body.price !== undefined ? parseInt(req.body.price, 10) : gig.price,
+      description: req.body.description !== undefined ? req.body.description : gig.description,
+      bulkPrice: req.body.bulkPrice !== undefined ? parseFloat(req.body.bulkPrice) : gig.bulkPrice,
       cover: req.body.cover !== undefined ? req.body.cover : gig.cover,
       images: req.body.images !== undefined ? req.body.images : gig.images,
-      shortDesc: req.body.shortDesc !== undefined ? req.body.shortDesc : gig.shortDesc,
-      resume: req.body.resume !== undefined ? req.body.resume : gig.resume,
-      yearsOfExp: req.body.yearsOfExp !== undefined ? parseInt(req.body.yearsOfExp, 10) : gig.yearsOfExp,
-      deliveryTime: req.body.deliveryTime !== undefined ? parseInt(req.body.deliveryTime, 10) : gig.deliveryTime,
-      revisionNumber: req.body.revisionNumber !== undefined ? parseInt(req.body.revisionNumber, 10) : gig.revisionNumber,
+      minOrderQty: req.body.minOrderQty !== undefined ? parseInt(req.body.minOrderQty, 10) : gig.minOrderQty,
+      leadTime: req.body.leadTime !== undefined ? parseInt(req.body.leadTime, 10) : gig.leadTime,
+      supplyCapacity: req.body.supplyCapacity !== undefined ? parseInt(req.body.supplyCapacity, 10) : gig.supplyCapacity,
       features: req.body.features !== undefined ? req.body.features : gig.features,
     };
 
@@ -172,7 +158,7 @@ export const getGig = async (req, res, next) => {
   try {
     const gig = await prisma.gig.findUnique({
       where: { id: req.params.id },
-      include: { user: true }, // Include seller details if needed
+      include: { user: true },
     });
     if (!gig) return next(createError(404, "Gig not found!"));
     res.status(200).json(gig);
@@ -190,11 +176,11 @@ export const getGigs = async (req, res, next) => {
     const gigs = await prisma.gig.findMany({
       where: {
         ...(userId && { userId }),
-        ...(categoryId && { categoryId }),
+        ...(categoryId && { category: categoryId }),
         ...((min || max) && {
-          price: {
-            ...(min && { gte: parseInt(min, 10) }),
-            ...(max && { lte: parseInt(max, 10) }),
+          bulkPrice: {
+            ...(min && { gte: parseFloat(min) }),
+            ...(max && { lte: parseFloat(max) }),
           },
         }),
         ...(search && { title: { contains: search, mode: 'insensitive' } }),
