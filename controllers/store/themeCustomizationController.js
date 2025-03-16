@@ -184,6 +184,18 @@ export const updateThemeCustomization = async (req, res) => {
 
     // Start with updateData from the request body
     let updateData = { ...req.body };
+    
+    // Remove fields that don't belong in the database schema
+    delete updateData.message;
+    
+    // Remove fields that should not be updated directly
+    delete updateData.id;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+    
+    // Keep storeId separate to avoid conflicts
+    const storeId = store.id;
+    delete updateData.storeId;
 
     // If files are uploaded, override the image fields
     if (req.files) {
@@ -201,9 +213,9 @@ export const updateThemeCustomization = async (req, res) => {
 
     // Use upsert: update if exists; create if it doesn't.
     const updatedCustomization = await prisma.themeCustomization.upsert({
-      where: { storeId: store.id },
+      where: { storeId: storeId },
       update: updateData,
-      create: { storeId: store.id, ...updateData },
+      create: { storeId: storeId, ...updateData },
     });
 
     console.log("Updated customization:", updatedCustomization);
@@ -213,10 +225,6 @@ export const updateThemeCustomization = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
-
-  
-  
 
 /**
  * Delete the theme customization for a given store.
