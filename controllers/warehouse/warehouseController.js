@@ -4,9 +4,6 @@ import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
 
-/**
- * Function to verify the JWT token and get user details
- */
 const verifyToken = (req) => {
   let token = req.headers.authorization?.split(" ")[1];
   if (!token && req.cookies?.__session) {
@@ -23,38 +20,31 @@ const verifyToken = (req) => {
   }
 };
 
-/**
- * Create a new warehouse (Only authenticated users).
- */
 export const createWarehouse = async (req, res, next) => {
   try {
     const user = verifyToken(req); // Authenticate user
     const userId = user; // Get the user ID from the token
 
-    // Ensure proper types and set defaults
     const contactInfo = req.body.contactInfo ? JSON.parse(req.body.contactInfo) : {};
     const coordinates = req.body.coordinates ? JSON.parse(req.body.coordinates) : {};
     const totalStock = req.body.totalStock ? parseFloat(req.body.totalStock) : 0;
     const usedCapacity = req.body.usedCapacity ? parseFloat(req.body.usedCapacity) : 0;
     const totalCapacity = req.body.capacity ? parseFloat(req.body.capacity) : 0;
     
-    // Calculate available capacity dynamically
     const availableCapacity = totalCapacity - usedCapacity;
 
-    // Find or create a Store for the user
     const store = await prisma.store.upsert({
-      where: { ownerId: userId },  // Use the userId to find the associated store
-      update: {}, // No need to update anything if it exists
+      where: { ownerId: userId }, 
+      update: {}, 
       create: {
-        ownerId: userId,  // Create a new store for the user if not found
-        name: req.body.storeName || "New Store",  // Provide a store name or default
+        ownerId: userId,  
+        name: req.body.storeName || "New Store",  
       },
     });
 
-    // Create a new warehouse linked to the store
     const newWarehouse = await prisma.warehouse.create({
       data: {
-        storeId: store.id,  // Associate warehouse with the store
+        storeId: store.id,  
         name: req.body.name,
         location: req.body.location,
         capacity: totalCapacity,
@@ -72,22 +62,18 @@ export const createWarehouse = async (req, res, next) => {
   }
 };
 
-
-
-//get all warehouses for a user
 export const getWarehouses = async (req, res, next) => {
   try {
-    const user = verifyToken(req); // Authenticate user
+    const user = verifyToken(req); 
     console.log('user',user);
-    const userId = user; // Get the user ID from the token
+    const userId = user; 
     console.log('userId',userId);
 
-    // Fetch only the warehouses owned by the authenticated user
     const warehouses = await prisma.warehouse.findMany({
       where: {
         Store: {
-          ownerId: userId,  // Ensure the user can only access their own warehouses
-        },// Filter warehouses by the authenticated user's ID
+          ownerId: userId,  
+        },
       },
     });
 
@@ -97,22 +83,17 @@ export const getWarehouses = async (req, res, next) => {
   }
 };
 
-
-/**
- * Get a single warehouse by ID (Only if the user owns it).
- */
 export const getWarehouse = async (req, res, next) => {
   try {
-    const user = verifyToken(req); // Authenticate user
-    const userId = user; // Get the user ID from the token
+    const user = verifyToken(req); 
+    const userId = user;
     console.log('userId', userId);
 
-    // Fetch the warehouse owned by the authenticated user
     const warehouse = await prisma.warehouse.findFirst({
       where: {
-        id: req.params.id, // Specific warehouse ID
+        id: req.params.id, 
         Store: {
-          ownerId: userId, // Ensure the user can only access their own warehouse
+          ownerId: userId,
         },
       },
       include: { 
@@ -128,24 +109,18 @@ export const getWarehouse = async (req, res, next) => {
   }
 };
 
-
-/**
- * Update a warehouse (Only warehouse owner).
- */
 export const updateWarehouse = async (req, res, next) => {
   try {
-    const user = verifyToken(req); // Authenticate user
-    const userId = user; // Get the user ID from the token
+    const user = verifyToken(req); 
+    const userId = user; 
 
-    // Find the warehouse with its related store
     const warehouse = await prisma.warehouse.findUnique({
       where: { id: req.params.id },
-      include: { Store: true }, // Include the store relationship
+      include: { Store: true }, 
     });
 
     if (!warehouse) return next(createError(404, "Warehouse not found"));
     
-    // Check if the store's owner matches the current user
     if (warehouse.Store.ownerId !== userId) {
       return next(createError(403, "You are not authorized to update this warehouse"));
     }
@@ -162,9 +137,6 @@ export const updateWarehouse = async (req, res, next) => {
   }
 };
 
-/**
- * Delete a warehouse (Only warehouse owner).
- */
 export const deleteWarehouse = async (req, res, next) => {
   try {
     const user = verifyToken(req); // Authenticate user
@@ -186,9 +158,6 @@ export const deleteWarehouse = async (req, res, next) => {
   }
 };
 
-/**
- * Get stock levels in a warehouse (Only warehouse owner).
- */
 export const getWarehouseStock = async (req, res, next) => {
   try {
     console.log("Starting getWarehouseStock function");
@@ -221,9 +190,6 @@ export const getWarehouseStock = async (req, res, next) => {
     next(err);
   }
 };
-/**
- * Assign product location in warehouse (Only warehouse owner).
- */
 export const assignProductLocation = async (req, res, next) => {
   try {
     const user = verifyToken(req); // Authenticate user

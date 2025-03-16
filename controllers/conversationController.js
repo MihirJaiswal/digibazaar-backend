@@ -9,7 +9,6 @@ export const createConversation = async (req, res, next) => {
     const currentUserId = req.userId;
     const otherUserId = req.body.to;
 
-    // Order the IDs to generate a consistent conversation id
     const [user1, user2] =
       currentUserId < otherUserId
         ? [currentUserId, otherUserId]
@@ -19,7 +18,6 @@ export const createConversation = async (req, res, next) => {
     const conversation = await prisma.conversation.upsert({
       where: { id: conversationId },
       update: {
-        // Update read flags based on the current user initiating the request.
         readByUser1: currentUserId === user1,
         readByUser2: currentUserId === user2,
       },
@@ -40,7 +38,6 @@ export const createConversation = async (req, res, next) => {
 
 export const updateConversation = async (req, res, next) => {
   try {
-    // First, fetch the conversation to determine which read flag to update
     const conversation = await prisma.conversation.findUnique({
       where: { id: req.params.id },
     });
@@ -83,7 +80,6 @@ export const getSingleConversation = async (req, res, next) => {
 
 export const getConversations = async (req, res, next) => {
   try {
-    // Fetch conversations where the current user is either user1 or user2
     const conversations = await prisma.conversation.findMany({
       where: {
         OR: [{ user1Id: req.userId }, { user2Id: req.userId }],

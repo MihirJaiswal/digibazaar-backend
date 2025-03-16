@@ -9,7 +9,6 @@ export const createMessage = async (req, res, next) => {
     const { conversationId, content } = req.body;
     const userId = req.userId;
 
-    // Create a new message in the conversation
     const newMessage = await prisma.message.create({
       data: {
         conversationId,
@@ -18,7 +17,6 @@ export const createMessage = async (req, res, next) => {
       },
     });
 
-    // Fetch the conversation to update read flags and lastMessage
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
     });
@@ -27,7 +25,6 @@ export const createMessage = async (req, res, next) => {
       return next(createError(404, 'Conversation not found'));
 
     let updateData = { lastMessage: content };
-    // Determine which user flag to update
     if (conversation.user1Id === userId) {
       updateData.readByUser1 = true;
       updateData.readByUser2 = false;

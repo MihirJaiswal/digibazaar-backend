@@ -4,7 +4,6 @@ import createError from '../utils/createError.js';
 
 const prisma = new PrismaClient();
 
-// Create a new transaction for the authenticated user
 export const createTransaction = async (req, res, next) => {
   const { type, amount, description } = req.body;
   
@@ -14,7 +13,6 @@ export const createTransaction = async (req, res, next) => {
   }
   
   try {
-    // Optional: Add business logic for handling different types (e.g., verifying sufficient funds for withdrawals)
     const transaction = await prisma.transaction.create({
       data: {
         userId: req.userId,
@@ -29,7 +27,6 @@ export const createTransaction = async (req, res, next) => {
   }
 };
 
-// Get all transactions for the authenticated user
 export const getTransactions = async (req, res, next) => {
   try {
     const transactions = await prisma.transaction.findMany({
@@ -42,7 +39,6 @@ export const getTransactions = async (req, res, next) => {
   }
 };
 
-// Get a single transaction by its ID (ensuring it belongs to the authenticated user)
 export const getTransactionById = async (req, res, next) => {
   const { id } = req.params;
   try {
@@ -58,7 +54,6 @@ export const getTransactionById = async (req, res, next) => {
   }
 };
 
-// (Optional) Delete a transaction if business logic permits (ensuring ownership)
 export const deleteTransaction = async (req, res, next) => {
   const { id } = req.params;
   try {

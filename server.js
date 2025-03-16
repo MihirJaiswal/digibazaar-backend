@@ -13,7 +13,6 @@ import { Server } from 'socket.io';
 const app = express();
 const prisma = new PrismaClient();
 
-// CORS and Body Parsers
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -26,7 +25,6 @@ app.options('*', cors());
 app.use(express.json());
 app.use(cookieParser());
 
-// Logging Middleware for all incoming requests
 app.use((req, res, next) => {
   console.log('🔹 Received Request:');
   console.log('➡️ Method:', req.method);
@@ -37,12 +35,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health Check Route
 app.get('/api/health', (req, res) => {
   res.status(200).json({ message: 'Server is healthy' });
 });
 
-// Import API Routes
 import authRoutes from './routes/authRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import communityCommentRoutes from './routes/community/communityCommentRoutes.js';
@@ -74,7 +70,6 @@ import shipmentRoutes from './routes/warehouse/shipmentRoutes.js';
 import productDisplayRoutes from './routes/warehouse/productDisplayRoutes.js';
 import inquiryRoutes from './routes/gig/inquiryRoutes.js'
 
-// Mount API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/community-comments', communityCommentRoutes);
@@ -106,7 +101,6 @@ app.use('/api/shipments', shipmentRoutes);
 app.use('/api/product-display', productDisplayRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 
-// Global Error Handler Middleware
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err);
   const errorStatus = err.status || 500;
@@ -133,8 +127,6 @@ io.on('connection', (socket) => {
   });
 
   socket.on('newMessage', async (data) => {
-    // Expected data: { conversationId, message }
-    // where message is an object: { id, userId, content, createdAt, status }
     console.log(
       `Socket ${socket.id} new message in ${data.conversationId}:`,
       data.message
@@ -143,7 +135,6 @@ io.on('connection', (socket) => {
     try {
       const { conversationId, message } = data;
       
-      // Save only the relevant parts to the database
       const newMessage = await prisma.message.create({
         data: {
           conversationId,
@@ -152,7 +143,6 @@ io.on('connection', (socket) => {
         },
       });
 
-      // Update conversation details like lastMessage and read flags
       const conversation = await prisma.conversation.findUnique({
         where: { id: conversationId },
       });
@@ -172,7 +162,6 @@ io.on('connection', (socket) => {
         });
       }
 
-      // Broadcast the saved message to other clients in the same conversation room
       socket.to(conversationId).emit('messageReceived', newMessage);
     } catch (err) {
       console.error('Error storing message:', err);
@@ -185,7 +174,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start the server with Socket.IO
 const PORT = process.env.PORT || 8800;
 server.listen(PORT, () => {
   console.log(`Backend server with Socket.IO is running on port ${PORT}!`);

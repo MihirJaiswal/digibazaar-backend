@@ -4,7 +4,6 @@ import createError from '../utils/createError.js';
 
 const prisma = new PrismaClient();
 
-// Follow a user
 export const followUser = async (req, res, next) => {
   const { followingId } = req.body;
   if (!followingId) {
@@ -15,7 +14,6 @@ export const followUser = async (req, res, next) => {
   }
 
   try {
-    // Check if the follow relationship already exists
     const existingFollow = await prisma.follow.findUnique({
       where: {
         followerId_followingId: { followerId: req.userId, followingId },
@@ -45,7 +43,6 @@ export const unfollowUser = async (req, res, next) => {
   }
 
   try {
-    // Check if the follow relationship exists
     const existingFollow = await prisma.follow.findUnique({
       where: {
         followerId_followingId: { followerId: req.userId, followingId },
@@ -64,7 +61,6 @@ export const unfollowUser = async (req, res, next) => {
   }
 };
 
-// Get list of followers for a given user
 export const getFollowers = async (req, res, next) => {
   const { userId } = req.params;
   try {
@@ -78,7 +74,6 @@ export const getFollowers = async (req, res, next) => {
   }
 };
 
-// Get list of users a given user is following
 export const getFollowing = async (req, res, next) => {
   const { userId } = req.params;
   try {

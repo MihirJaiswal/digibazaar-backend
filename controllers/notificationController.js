@@ -4,7 +4,6 @@ import createError from '../utils/createError.js';
 
 const prisma = new PrismaClient();
 
-// Create a new notification
 export const createNotification = async (req, res, next) => {
   const { userId, content } = req.body;
   if (!userId || !content) {

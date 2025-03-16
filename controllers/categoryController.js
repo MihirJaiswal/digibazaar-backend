@@ -20,7 +20,6 @@ export const createCategory = async (req, res, next) => {
   }
 };
 
-// Get all categories along with their subcategories
 export const getAllCategories = async (req, res, next) => {
   try {
     const categories = await prisma.category.findMany({
@@ -32,7 +31,6 @@ export const getAllCategories = async (req, res, next) => {
   }
 };
 
-// Get a single category by ID
 export const getCategoryById = async (req, res, next) => {
   const { id } = req.params;
   try {
@@ -47,7 +45,6 @@ export const getCategoryById = async (req, res, next) => {
   }
 };
 
-// Update an existing category
 export const updateCategory = async (req, res, next) => {
   const { id } = req.params;
   const { name, type } = req.body;
