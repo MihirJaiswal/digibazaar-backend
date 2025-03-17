@@ -5,7 +5,8 @@ import {
   assignStockToOrder,
   getOrders,
   getOrder,
-  createPaymentIntentForProductOrder
+  createPaymentIntentForProductOrder,
+  getUserOrders
 } from "../../controllers/warehouse/orderController.js";
 
 const router = express.Router();
@@ -24,5 +25,7 @@ router.post("/:id/assign-stock", assignStockToOrder);
 
 // Create a payment intent
 router.post("/payments/create-intent", createPaymentIntentForProductOrder);
+
+router.get("/user/orders", getUserOrders);
 
 export default router;

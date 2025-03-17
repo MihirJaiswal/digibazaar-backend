@@ -5,7 +5,9 @@ import {
   resendOtp, 
   login, 
   logout,
-  uploadUserImage 
+  uploadUserImage,
+  forgotPassword,
+  resetPassword
 } from '../controllers/authController.js';
 
 const router = express.Router();
@@ -13,6 +15,8 @@ const router = express.Router();
 router.post('/register/initiate', uploadUserImage, initiateRegister);
 router.post('/register/verify', verifyOtpAndRegister);
 router.post('/register/resend-otp', resendOtp);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 router.post('/login', login);
 router.post('/logout', logout);
 

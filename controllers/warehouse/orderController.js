@@ -346,3 +346,114 @@ export const getOrder = async (req, res, next) => {
     next(err);
   }
 };
+
+
+/**
+ * Get all orders for the authenticated user (buyer).
+ */
+export const getUserOrders = async (req, res, next) => {
+  try {
+    console.log("getUserOrders: Received request", { headers: req.headers, body: req.body });
+    
+    // Extract and verify token directly using jwt.verify.
+    const authHeader = req.headers.authorization;
+    console.log("getUserOrders: authHeader:", authHeader);
+    if (!authHeader) {
+      console.log("getUserOrders: No authentication token found.");
+      return next(createError(401, "No authentication token found."));
+    }
+    
+    const token = authHeader.split(" ")[1];
+    console.log("getUserOrders: Extracted token:", token);
+    if (!token || token === "null") {
+      console.log("getUserOrders: Invalid token.");
+      return next(createError(401, "Invalid token."));
+    }
+    
+    // Debug: Decode token without verification to inspect header and payload.
+    const decodedWithoutVerification = jwt.decode(token, { complete: true });
+    console.log("getUserOrders: Decoded token without verification:", decodedWithoutVerification);
+    
+    // Verify the token.
+    const decoded = jwt.verify(token, process.env.JWT_KEY);
+    console.log("getUserOrders: Decoded token after verification:", decoded);
+    
+    // Debug: Check token expiration if available.
+    if (decoded.exp) {
+      const expiryDate = new Date(decoded.exp * 1000);
+      console.log("getUserOrders: Token expiration date:", expiryDate);
+    }
+    
+    const userId = decoded.id;
+    console.log("getUserOrders: Decoded User ID:", userId);
+    
+    // Fetch all orders for this user with complete product information
+    const orders = await prisma.productOrder.findMany({
+      where: { userId: userId },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                price: true,
+                mainImage: true,
+                images: true,
+                sku: true,
+                weight: true,
+                dimensions: true,
+                tags: true,
+                isPublished: true
+              }
+            },
+            productVariant: {
+              select: {
+                id: true,
+                name: true,
+                value: true,
+                price: true,
+                additionalPrice: true,
+                stock: true
+              }
+            }
+          }
+        },
+        store: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+            description: true,
+            category: true
+          }
+        },
+        shippingMethod: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            estimatedDeliveryDays: true
+          }
+        },
+        shipment: {
+          select: {
+            trackingNumber: true,
+            trackingStatus: true,
+            shippedAt: true,
+            deliveredAt: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    console.log(`getUserOrders: Fetched ${orders.length} orders for user ${userId}`);
+    
+    res.status(200).json(orders);
+  } catch (err) {
+    console.error("getUserOrders: Error occurred:", err);
+    next(err);
+  }
+};

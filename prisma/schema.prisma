@@ -116,6 +116,8 @@ model User {
   email         String   @unique
   username      String   @unique
   password      String
+  passwordResetToken    String?
+  passwordResetExpires  DateTime?
   profilePic    String?
   bio           String?
   country       String
