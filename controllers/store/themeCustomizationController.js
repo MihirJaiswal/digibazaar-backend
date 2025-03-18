@@ -91,7 +91,10 @@ export const getThemeCustomization = async (req, res) => {
 
 export const uploadThemeCustomizationImage = themeCustomizationUpload.fields([
   {name: 'bannerImage', maxCount: 1},
-  {name: 'footerImage', maxCount: 1}
+  {name: 'footerImage', maxCount: 1},
+  {name: 'logoImage', maxCount: 1},
+  {name: 'aboutImage', maxCount: 1},
+  {name: 'favicon', maxCount: 1}
 ])
   
 
@@ -104,19 +107,60 @@ export const createThemeCustomization = async (req, res) => {
   const {
     storeId,
     theme,
+    // Font settings
     fontFamily,
     fontSize,
     fontColor,
+    headingFontFamily,
+    headingFontSize,
+    headingFontColor,
+    
+    // Color scheme
     backgroundColor,
+    backgroundColor2,
     textColor,
+    accentColor,
+    borderColor,
+    cardBackgroundColor,
+    
+    // Button styling
     buttonColor,
+    buttonTextColor,
+    buttonHoverColor,
+    buttonHoverTextColor,
+    buttonBorderRadius,
+    
+    // Navigation styling
+    navBarColor,
+    navBarTextColor,
+    navBarHoverColor,
+    
+    // Link styling
+    linkColor,
+    linkHoverColor,
+    
+    // Message styling
+    errorColor,
+    successColor,
+    warningColor,
+    
+    // Layout settings
+    borderRadius,
+    productGridLayout,
+    containerWidth,
+    
+    // Text content
     bannerText,
     footerText,
+    
   } = req.body;
 
   // Initialize images from req.body or empty string
   let bannerImage = req.body.bannerImage || "";
   let footerImage = req.body.footerImage || "";
+  let logoImage = req.body.logoImage || "";
+  let aboutImage = req.body.aboutImage || "";
+  let favicon = req.body.favicon || "";
 
   // If files are uploaded via middleware, use their Cloudinary URLs
   if (req.files) {
@@ -128,6 +172,18 @@ export const createThemeCustomization = async (req, res) => {
       footerImage = req.files.footerImage[0].path;
       console.log("Footer image uploaded:", footerImage);
     }
+    if (req.files.logoImage && req.files.logoImage[0]) {
+      logoImage = req.files.logoImage[0].path;
+      console.log("Logo image uploaded:", logoImage);
+    }
+    if (req.files.aboutImage && req.files.aboutImage[0]) {
+      aboutImage = req.files.aboutImage[0].path;
+      console.log("About image uploaded:", aboutImage);
+    }
+    if (req.files.favicon && req.files.favicon[0]) {
+      favicon = req.files.favicon[0].path;
+      console.log("Favicon uploaded:", favicon);
+    }
   }
 
   try {
@@ -135,15 +191,59 @@ export const createThemeCustomization = async (req, res) => {
       data: {
         storeId,
         theme,
+        // Font settings
         fontFamily,
         fontSize,
         fontColor,
+        headingFontFamily,
+        headingFontSize,
+        headingFontColor,
+        
+        // Color scheme
         backgroundColor,
+        backgroundColor2,
         textColor,
+        accentColor,
+        borderColor,
+        cardBackgroundColor,
+        
+        // Button styling
         buttonColor,
+        buttonTextColor,
+        buttonHoverColor,
+        buttonHoverTextColor,
+        buttonBorderRadius,
+        
+        // Navigation styling
+        navBarColor,
+        navBarTextColor,
+        navBarHoverColor,
+        
+        // Link styling
+        linkColor,
+        linkHoverColor,
+        
+        // Message styling
+        errorColor,
+        successColor,
+        warningColor,
+        
+        // Layout settings
+        borderRadius,
+        productGridLayout,
+        containerWidth,
+        
+        // Images
         bannerImage,
+        footerImage,
+        logoImage,
+        aboutImage,
+        favicon,
+        
+        // Text content
         bannerText,
         footerText,
+        
       },
     });
 
@@ -207,6 +307,18 @@ export const updateThemeCustomization = async (req, res) => {
         updateData.footerImage = req.files.footerImage[0].path;
         console.log("Updated footer image:", updateData.footerImage);
       }
+      if (req.files.logoImage && req.files.logoImage[0]) {
+        updateData.logoImage = req.files.logoImage[0].path;
+        console.log("Updated logo image:", updateData.logoImage);
+      }
+      if (req.files.aboutImage && req.files.aboutImage[0]) {
+        updateData.aboutImage = req.files.aboutImage[0].path;
+        console.log("Updated about image:", updateData.aboutImage);
+      }
+      if (req.files.favicon && req.files.favicon[0]) {
+        updateData.favicon = req.files.favicon[0].path;
+        console.log("Updated favicon:", updateData.favicon);
+      }
     }
 
     console.log("Update data:", updateData);
@@ -265,4 +377,3 @@ export const deleteThemeCustomization = async (req, res) => {
       res.status(500).json({ message: "Internal server error" });
     }
   };
-  

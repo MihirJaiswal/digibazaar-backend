@@ -556,21 +556,66 @@ model Product {
 }
 
 model ThemeCustomization {
-  id              String   @id @default(uuid())
-  storeId         String   @unique
-  theme           String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  fontFamily      String?
-  fontSize        String?
-  fontColor       String?
-  backgroundColor String?
-  textColor       String?
-  buttonColor     String?
-  bannerImage     String?
-  bannerText      String?
-  footerText      String?
-
+  id                    String   @id @default(uuid())
+  storeId               String   @unique
+  theme                 String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Font settings
+  fontFamily            String?
+  fontSize              String?
+  fontColor             String?
+  headingFontFamily     String?
+  headingFontSize       String?
+  headingFontColor      String?
+  
+  // Color scheme
+  backgroundColor       String?
+  backgroundColor2      String?
+  textColor             String?
+  accentColor           String?
+  borderColor           String?
+  cardBackgroundColor   String?
+  
+  // Button styling
+  buttonColor           String?
+  buttonTextColor       String?
+  buttonHoverColor      String?
+  buttonHoverTextColor  String?
+  buttonBorderRadius    String?
+  
+  // Navigation styling
+  navBarColor           String?
+  navBarTextColor       String?
+  navBarHoverColor      String?
+  
+  // Link styling
+  linkColor             String?
+  linkHoverColor        String?
+  
+  // Message styling
+  errorColor            String?
+  successColor          String?
+  warningColor          String?
+  
+  // Layout settings
+  borderRadius          String?
+  productGridLayout     String?
+  containerWidth        String?
+  
+  // Images
+  aboutImage            String?
+  bannerImage           String?
+  footerImage           String?
+  logoImage             String?
+  favicon               String?
+  
+  // Text content
+  bannerText            String?
+  footerText            String?
+  
+  // Relationship
   store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }
 
